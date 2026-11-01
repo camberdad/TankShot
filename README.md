@@ -22,7 +22,7 @@ Use this responsive iframe:
 <iframe
   src="https://camberdad.github.io/TankShot/"
   title="TankShot"
-  style="width:100%; max-width:780px; height:680px; border:0; display:block;"
+  style="width:100%; max-width:700px; height:620px; border:0; display:block;"
   allow="fullscreen"
 ></iframe>
 ```
