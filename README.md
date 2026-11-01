@@ -16,20 +16,18 @@ If GitHub Pages has not started serving the site yet, open **Settings → Pages*
 
 ## Embed on a website
 
-Use an iframe pointing to the published page:
+Use this responsive iframe:
 
 ```html
 <iframe
   src="https://camberdad.github.io/TankShot/"
   title="TankShot"
-  width="100%"
-  height="720"
-  style="border:0; display:block;"
+  style="width:100%; max-width:780px; height:680px; border:0; display:block;"
   allow="fullscreen"
 ></iframe>
 ```
 
-Adjust the height to fit the page layout. The game adapts to the iframe width and supports touch controls on phones and tablets.
+The game adapts to the iframe width and supports touch controls on phones and tablets.
 
 ## Controls
 
