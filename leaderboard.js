@@ -2,8 +2,9 @@
 (function () {
   'use strict';
   // Configure with a dedicated TankShot JSONBin to keep Castle Rangers' board separate.
-  var BIN_ID = "";
-  var MASTER_KEY = "";
+  var CONFIG = window.TANKSHOT_JSONBIN_CONFIG || {};
+  var BIN_ID = String(CONFIG.BIN_ID || '');
+  var MASTER_KEY = String(CONFIG.MASTER_KEY || '');
   var URL = 'https://api.jsonbin.io/v3/b/' + encodeURIComponent(BIN_ID);
   var LOCAL_KEY = 'tankshot.highscores.v1';
   var headers = { 'Content-Type': 'application/json', 'X-Bin-Meta': 'false', 'X-Master-Key': MASTER_KEY };
