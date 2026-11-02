@@ -161,6 +161,11 @@ canvas.playing { cursor: none; }
   .ammo-bar { justify-content:flex-start; }
   .ammo-slot { flex-basis:40px; height:38px; font-size:9px; }
 }
+.score-board { display:grid; gap:8px; margin:12px 0; max-height:52vh; overflow:auto; }
+.score-row { display:grid; grid-template-columns:24px minmax(72px,1fr) repeat(2,minmax(64px,auto)); gap:8px; align-items:center; padding:8px; border:1px solid var(--line); border-radius:5px; background:var(--panel-2); font-size:14px; }
+.score-row b { color:var(--accent); }
+.score-head { color:var(--muted); font-weight:700; }
+@media(max-width:560px){.score-row{grid-template-columns:20px minmax(56px,1fr) repeat(2,minmax(48px,auto));gap:4px;padding:6px 4px;font-size:11px;}}
 </style>
 
 <div class="app">
@@ -177,7 +182,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 20">V20</span>
+      <span class="version-badge" title="Game version 21">V21</span>
     </div>
   </header>
 
@@ -192,6 +197,7 @@ canvas.playing { cursor: none; }
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
         <button class="btn" id="bArmory" type="button">Armory</button>
         <button class="btn" id="bSettings" type="button">Settings</button>
+        <button class="btn" id="bScores" type="button">High Scores</button>
         <button class="btn" id="bProfiles" type="button">Switch Player</button>
         <div class="step" id="stepWrap" hidden>
           <span>Start at mission</span>
@@ -246,6 +252,14 @@ canvas.playing { cursor: none; }
       </section>
     </div>
 
+    <div class="overlay armory-overlay" id="ovScores" hidden>
+      <section class="armory-panel scores-panel">
+        <header class="armory-head"><div><h2 class="h2">High Scores</h2><p class="armory-balance" id="scoreStatus">Checking JSONBin connection…</p></div><button class="btn small" id="bScoresBack" type="button">Back</button></header>
+        <div id="scoreBoard" class="score-board"></div>
+        <button class="btn small" id="bScoresRefresh" type="button">Refresh</button>
+      </section>
+    </div>
+
     <div class="overlay light" id="ovBrief" hidden>
       <div class="kicker">Mission</div>
       <div class="big" id="brNum">1</div>
@@ -290,6 +304,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
+<script src="leaderboard-config.js?v=21"></script>
+<script src="leaderboard.js?v=21"></script>
 <script>
 (function () {
 'use strict';
@@ -753,7 +769,7 @@ function placeCoinCrates() {
 }
 
 /* ================= HUD & overlays ================= */
-const OVS = ['ovTitle', 'ovProfiles', 'ovArmory', 'ovSettings', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
+const OVS = ['ovTitle', 'ovProfiles', 'ovArmory', 'ovSettings', 'ovScores', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
 function setOv(name) { for (const id of OVS) $(id).hidden = (id !== name); }
 function enemiesLeft() { let n = 0; for (const t of tanks) if (!t.isPlayer && t.alive) n++; return n; }
 function ammoFor(id) { return AMMO.find(a => a.id === id) || AMMO[0]; }
@@ -842,6 +858,25 @@ function openSettings() {
   setOv('ovSettings');
 }
 function saveSetting(key, value) { save.settings[key] = value; persist(); }
+function renderScores() {
+  $('scoreStatus').textContent = window.TankShotScores && TankShotScores.configured ? 'Loading leaderboard…' : 'Add a restricted JSONBin X-Access-Key to enable live scores.';
+  $('scoreBoard').innerHTML = '';
+  if (!window.TankShotScores) { $('scoreStatus').textContent = 'Leaderboard unavailable'; return; }
+  TankShotScores.fetch(function (scores, online) {
+    $('scoreStatus').textContent = online ? 'JSONBin · Live' : TankShotScores.configured ? 'Offline · device scores' : 'Access key needed · local scores only';
+    const list = scores.slice(0, 10);
+    $('scoreBoard').innerHTML = list.length ? '<div class="score-row score-head"><span>#</span><span>Player</span><span>Mission</span><span>Tanks defeated</span></div>' + list.map(function (s, i) {
+      return '<div class="score-row"><span>' + (i + 1) + '</span><b>' + String(s.name || 'Guest').replace(/[&<>"']/g, '') + '</b><span>' + Number(s.highestMissionCompleted || s.level || 0) + '</span><span>' + Number(s.totalKills || s.kills || 0).toLocaleString() + '</span></div>';
+    }).join('') : '<p class="armory-note">No completed runs yet. Be the first on the board.</p>';
+  });
+}
+function submitRun() {
+  if (!window.TankShotScores) return;
+  const name = (currentProfile || 'Guest').trim().slice(0, 16) || 'Guest';
+  TankShotScores.submit({ name, highestMissionCompleted: save.highestMissionCompleted, totalKills: save.totalKills,
+    level: save.highestMissionCompleted, shots: runStats.shots, kills: save.totalKills,
+    score: save.totalKills * 100 + save.highestMissionCompleted * 500 });
+}
 function buyOrEquipAmmo(id) {
   const a = ammoFor(id); if (!AMMO.some(x => x.id === id)) return;
   if (!save.ammoUnlocked.includes(id)) {
@@ -976,7 +1011,7 @@ function playerDown() { G.state = 'dead'; G.timer = 1.9; cv.classList.remove('pl
 function afterDeath() {
   if (G.lives <= 1) {
     G.lives = 0; updHud(); G.state = 'over';
-    $('ovOverText').textContent = 'Your tank was destroyed on mission ' + G.mission + '. Start again from the title screen.'; runStats.level = Math.max(runStats.level, G.mission); save.bestLevel = Math.max(save.bestLevel || 1, runStats.level); persist();
+    $('ovOverText').textContent = 'Your tank was destroyed on mission ' + G.mission + '. Start again from the title screen.'; runStats.level = Math.max(runStats.level, G.mission); save.bestLevel = Math.max(save.bestLevel || 1, runStats.level); persist(); submitRun();
     setOv('ovOver');
   } else { G.lives--; resetArena(); beginBrief(true); }
 }
@@ -989,7 +1024,7 @@ function completeMission() {
   else if (m === 10 && !save.silver) { save.silver = 1; ev = 'silver'; }
   else if (m === 20 && !save.gold) { save.gold = 1; save.unlocked = 1; save.max = Math.max(save.max, 21); ev = 'gold'; end = true; }
   if (m > 30) { save.plat++; G.note = (G.note ? G.note + '. ' : '') + 'Platinum medal earned'; }
-  persist(); updHud();
+  persist(); updHud(); submitRun();
   if (m >= 100) { G.state = 'win'; save.bestLevel = 100; persist(); setOv('ovWin'); return; }
   if (ev) { showMedal(ev, m, end); return; }
   enterMission(m + 1);
@@ -1596,6 +1631,9 @@ $('bProfilesBack')?.addEventListener('click', () => currentProfile ? showTitle()
 $('newProfileBtn')?.addEventListener('click', createProfile);
 $('newProfileName')?.addEventListener('keydown', e => { if (e.key === 'Enter') createProfile(); });
 $('bSettingsBack')?.addEventListener('click', showTitle);
+$('bScores')?.addEventListener('click', () => { renderScores(); setOv('ovScores'); });
+$('bScoresBack')?.addEventListener('click', showTitle);
+$('bScoresRefresh')?.addEventListener('click', renderScores);
 $('setFps')?.addEventListener('change', e => saveSetting('fps', e.target.value));
 $('setDifficulty')?.addEventListener('change', e => saveSetting('difficulty', e.target.value));
 $('setHandling')?.addEventListener('change', e => saveSetting('handling', e.target.value));
@@ -1639,7 +1677,7 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=20"></script>
+<script src="version-check.js?v=21"></script>
 
 </body></html>
 
