@@ -60,7 +60,7 @@ body {
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.small { padding: 6px 12px; font-size: 14px; }
 .btn:focus-visible, .step button:focus-visible { outline: 3px solid #8fbcff; outline-offset: 2px; }
-.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=10') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
+.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=11') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; touch-action: none; user-select: none; -webkit-user-select: none; }
 canvas.playing { cursor: none; }
 .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,16,.82); padding: 16px; text-align: center; overflow: auto; }
@@ -157,7 +157,7 @@ canvas.playing { cursor: none; }
     <canvas id="cv"></canvas>
 
     <div class="overlay" id="ovTitle">
-      <img class="logo-image" src="assets/tankshot-logo.svg?v=10" alt="TankShot">
+      <img class="logo-image" src="assets/tankshot-logo.svg?v=11" alt="TankShot">
       <p class="tag">One hit ends you. Bounce shots off the blocks, lay mines at the chokepoints and clear every arena.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
@@ -198,6 +198,7 @@ canvas.playing { cursor: none; }
     <div class="overlay armory-overlay" id="ovSettings" hidden>
       <section class="armory-panel settings-panel">
         <header class="armory-head"><h2 class="h2">Settings</h2><button class="btn small" id="bSettingsBack" type="button">Back</button></header>
+        <div class="setting-row"><label for="setFps">Frame rate</label><select id="setFps"><option value="30">30 FPS</option><option value="60">60 FPS</option><option value="120">120 FPS</option><option value="0">Unlimited</option></select></div>
         <div class="setting-row"><label for="setDifficulty">Difficulty</label><select id="setDifficulty"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></div>
         <div class="setting-row"><label for="setHandling">Tank handling</label><select id="setHandling"><option value="arcade">Arcade</option><option value="precise">Precise</option></select></div>
         <div class="setting-row"><label for="setShake">Screen shake</label><input id="setShake" type="checkbox"></div>
@@ -534,13 +535,14 @@ const AMMO = [
   { id: 'cluster', name: 'Cluster Bomb', short: 'CLST', cost: 6200, speed: 250, bounce: 0, pierce: 0, radius: 126, color: '#ff795b', desc: 'Heavy shell with a large blast and bonus crate-breaking power.' },
   { id: 'rail', name: 'Rail Cannon', short: 'RAIL', cost: 8500, speed: 680, bounce: 0, pierce: 99, radius: 0, color: '#8fffd5', desc: 'High-velocity rail round punches through every tank in its path.' }
 ];
-let save = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', settings: { difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' } };
+let save = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', settings: { fps: '60', difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' } };
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && typeof s === 'object') save = Object.assign(save, s); } catch (e) {}
 if (!Array.isArray(save.ammoUnlocked)) save.ammoUnlocked = ['standard'];
 if (!save.ammoUnlocked.includes('standard')) save.ammoUnlocked.unshift('standard');
 if (!AMMO.some(a => a.id === save.ammoEquipped && save.ammoUnlocked.includes(a.id))) save.ammoEquipped = 'standard';
 if (!Number.isFinite(save.coins) || save.coins < 0) save.coins = 0;
-save.settings = Object.assign({ difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' }, save.settings || {});
+save.settings = Object.assign({ fps: '60', difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' }, save.settings || {});
+if (!['30', '60', '120', '0'].includes(String(save.settings.fps))) save.settings.fps = '60';
 let runStats = { shots: 0, kills: 0, level: 1 };
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 
@@ -693,6 +695,7 @@ function renderArmory() {
 }
 function openArmory() { renderArmory(); setOv('ovArmory'); }
 function openSettings() {
+  $('setFps').value = String(save.settings.fps);
   $('setDifficulty').value = save.settings.difficulty; $('setHandling').value = save.settings.handling;
   $('setShake').checked = !!save.settings.shake; $('setParticles').value = save.settings.particles;
   setOv('ovSettings');
@@ -1343,6 +1346,7 @@ $('bScores')?.addEventListener('click', () => { renderScores(); setOv('ovScores'
 $('bSettingsBack')?.addEventListener('click', showTitle);
 $('bScoresBack')?.addEventListener('click', showTitle);
 $('bScoresRefresh')?.addEventListener('click', renderScores);
+$('setFps')?.addEventListener('change', e => saveSetting('fps', e.target.value));
 $('setDifficulty')?.addEventListener('change', e => saveSetting('difficulty', e.target.value));
 $('setHandling')?.addEventListener('change', e => saveSetting('handling', e.target.value));
 $('setShake')?.addEventListener('change', e => saveSetting('shake', e.target.checked));
@@ -1358,11 +1362,25 @@ $('bMedalGo').addEventListener('click', () => {
 });
 
 /* ================= main loop ================= */
-let last = 0;
+const SIM_STEP = 1 / 120;
+const MAX_FRAME_DELTA = .1;
+const MAX_SIM_STEPS = 12;
+let last = 0, lastRender = 0, accumulator = 0;
 function frame(ts) {
   window.requestAnimationFrame(frame);
-  const dt = Math.min(.033, ((ts - last) / 1000) || .016); last = ts;
-  update(dt); render();
+  if (!last) { last = ts; lastRender = ts; render(); return; }
+  const elapsed = Math.max(0, (ts - last) / 1000); last = ts;
+  accumulator = Math.min(accumulator + Math.min(MAX_FRAME_DELTA, elapsed), MAX_FRAME_DELTA);
+  const fps = Number(save.settings.fps);
+  const interval = fps > 0 ? 1000 / fps : 0;
+  if (interval && ts - lastRender < interval - .25) return;
+  lastRender = ts;
+  let steps = 0;
+  while (accumulator >= SIM_STEP && steps < MAX_SIM_STEPS) {
+    update(SIM_STEP); accumulator -= SIM_STEP; steps++;
+  }
+  if (steps === MAX_SIM_STEPS) accumulator = 0;
+  render();
 }
 showTitle();
 window.requestAnimationFrame(frame);
@@ -1371,9 +1389,9 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="leaderboard-config.js?v=10"></script>
-<script src="leaderboard.js?v=10"></script>
-<script src="version-check.js?v=10"></script>
+<script src="leaderboard-config.js?v=11"></script>
+<script src="leaderboard.js?v=11"></script>
+<script src="version-check.js?v=11"></script>
 
 </body></html>
 
