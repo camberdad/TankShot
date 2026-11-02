@@ -60,7 +60,7 @@ body {
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.small { padding: 6px 12px; font-size: 14px; }
 .btn:focus-visible, .step button:focus-visible { outline: 3px solid #8fbcff; outline-offset: 2px; }
-.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=16') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
+.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=17') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; touch-action: none; user-select: none; -webkit-user-select: none; }
 canvas.playing { cursor: none; }
 .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,16,.82); padding: 16px; text-align: center; overflow: auto; }
@@ -113,6 +113,15 @@ canvas.playing { cursor: none; }
 .armory-card .ammo-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #ffd36b; font-weight: 700; }
 .armory-card .btn { width: 100%; }
 .coin-icon { color: #ffd36b; }
+.ammo-bar { position:absolute; z-index:2; left:50%; bottom:5px; transform:translateX(-50%); display:flex; justify-content:center; gap:5px; width:max-content; max-width:calc(100% - 12px); padding:7px 9px; overflow-x:auto; border:1px solid rgba(255,211,107,.32); border-radius:7px; background:linear-gradient(0deg,rgba(9,12,16,.94),rgba(18,22,29,.82)); box-shadow:0 4px 16px #0009; scrollbar-width:thin; }
+.ammo-slot { position:relative; flex:0 0 58px; height:54px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border:1px solid #59616d; border-radius:5px; background:#202630; color:var(--ink); cursor:pointer; font:700 11px var(--font-body); }
+.ammo-slot:hover:not(:disabled) { filter:brightness(1.18); }
+.ammo-slot.active { border:2px solid var(--accent); background:#493719; box-shadow:0 0 10px #ffb62955; transform:translateY(-3px); }
+.ammo-slot.locked { opacity:.42; filter:grayscale(.8); cursor:not-allowed; }
+.ammo-icon { width:13px; height:13px; border-radius:50%; border:2px solid #111820; background:var(--ammo-color); box-shadow:0 0 7px color-mix(in srgb,var(--ammo-color) 65%,transparent); }
+.ammo-key { position:absolute; top:2px; left:4px; color:#ffcf69; font-size:9px; opacity:.85; }
+.ammo-tier { color:var(--muted); font-size:9px; letter-spacing:.07em; text-transform:uppercase; }
+.armory-card .tier-tag { display:inline-block; margin-bottom:5px; color:var(--accent); font-size:11px; letter-spacing:.09em; text-transform:uppercase; }
 .settings-panel { max-width: 540px; }
 .setting-row { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:14px 4px; border-bottom:1px solid var(--line); font-size:19px; }
 .setting-row select { min-width:150px; padding:8px; color:var(--ink); background:var(--panel-2); border:1px solid var(--line); border-radius:4px; font:inherit; }
@@ -136,6 +145,8 @@ canvas.playing { cursor: none; }
   .v { font-size: 19px; }
   .armory-grid { grid-template-columns: 1fr; }
   .armory-card { padding: 10px; }
+  .ammo-bar { justify-content:flex-start; }
+  .ammo-slot { flex-basis:48px; height:48px; }
 }
 </style>
 
@@ -153,15 +164,16 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 16">V16</span>
+      <span class="version-badge" title="Game version 17">V17</span>
     </div>
   </header>
 
   <div class="stage" id="stage">
     <canvas id="cv"></canvas>
+    <div class="ammo-bar" id="ammoBar" aria-label="Ammunition selection"></div>
 
     <div class="overlay" id="ovTitle">
-      <img class="logo-image" src="assets/tankshot-logo.svg?v=16" alt="TankShot">
+      <img class="logo-image" src="assets/tankshot-logo.svg?v=17" alt="TankShot">
       <p class="tag">One hit ends you. Bounce shots off the blocks, lay mines at the chokepoints and clear every arena.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
@@ -179,7 +191,7 @@ canvas.playing { cursor: none; }
         <li><b>Move</b>WASD or arrows</li>
         <li><b>Aim</b>Mouse</li>
         <li><b>Fire</b>Click or Space</li>
-        <li><b>Ammo</b>Q cycles unlocked types</li>
+        <li><b>Ammo</b>1–9 select · Q cycles unlocked types</li>
         <li><b>Mine</b>E, Shift or right click</li>
         <li><b>Pause</b>P or Esc</li>
         <li><b>Sound</b>M</li>
@@ -549,15 +561,15 @@ function buildCfg(m) {
 /* ================= save ================= */
 const SAVE_KEY = 'tankshot.save.v1';
 const AMMO = [
-  { id: 'standard', name: 'Standard Shell', short: 'Shell', cost: 0, speed: 330, bounce: 1, pierce: 0, radius: 0, color: '#fff2b0', desc: 'Reliable shell with one ricochet. Always available.' },
-  { id: 'piercer', name: 'Piercer', short: 'AP', cost: 650, speed: 470, bounce: 0, pierce: 1, radius: 0, color: '#8feaff', desc: 'Fast armor-piercing round that can pass through one tank.' },
-  { id: 'blast', name: 'Blast Shell', short: 'HE', cost: 1100, speed: 290, bounce: 0, pierce: 0, radius: 76, color: '#ffb14a', desc: 'Explodes on impact and damages tanks and crates nearby.' },
-  { id: 'demolition', name: 'Demolition Shell', short: 'DEM', cost: 1800, speed: 245, bounce: 0, pierce: 0, radius: 118, color: '#ff6848', desc: 'Heavy blast with a larger radius for clearing crowded arenas.' },
-  { id: 'shrapnel', name: 'Shrapnel Burst', short: 'SHR', cost: 2400, speed: 360, bounce: 0, pierce: 0, radius: 52, color: '#ffd27c', desc: 'A compact blast that scatters a ring of damaging fragments.' },
-  { id: 'cryo', name: 'Cryo Shell', short: 'CRYO', cost: 3200, speed: 410, bounce: 0, pierce: 0, radius: 0, freeze: 2.5, color: '#7cecff', desc: 'Freezes nearby tanks briefly, leaving them open to follow-up shots.' },
-  { id: 'shock', name: 'Shockwave Charge', short: 'ARC', cost: 4600, speed: 280, bounce: 0, pierce: 0, radius: 150, color: '#b38cff', desc: 'A wide electrical blast reaches across clustered enemies.' },
-  { id: 'cluster', name: 'Cluster Bomb', short: 'CLST', cost: 6200, speed: 250, bounce: 0, pierce: 0, radius: 126, color: '#ff795b', desc: 'Heavy shell with a large blast and bonus crate-breaking power.' },
-  { id: 'rail', name: 'Rail Cannon', short: 'RAIL', cost: 8500, speed: 680, bounce: 0, pierce: 99, radius: 0, color: '#8fffd5', desc: 'High-velocity rail round punches through every tank in its path.' }
+  { id: 'standard', name: 'Standard Shell', short: 'Shell', tier: 1, cost: 0, speed: 330, bounce: 1, pierce: 0, radius: 0, color: '#fff2b0', desc: 'Reliable shell with one ricochet. Always available.' },
+  { id: 'piercer', name: 'Piercer', short: 'AP', tier: 1, cost: 650, speed: 470, bounce: 0, pierce: 1, radius: 0, color: '#8feaff', desc: 'Fast armor-piercing round that can pass through one tank.' },
+  { id: 'blast', name: 'Blast Shell', short: 'HE', tier: 1, cost: 1100, speed: 290, bounce: 0, pierce: 0, radius: 76, color: '#ffb14a', desc: 'Explodes on impact and damages tanks and crates nearby.' },
+  { id: 'demolition', name: 'Demolition Shell', short: 'DEM', tier: 2, cost: 1800, speed: 245, bounce: 0, pierce: 0, radius: 118, color: '#ff6848', desc: 'Heavy blast with a larger radius for clearing crowded arenas.' },
+  { id: 'shrapnel', name: 'Shrapnel Burst', short: 'SHR', tier: 2, cost: 2400, speed: 360, bounce: 0, pierce: 0, radius: 52, color: '#ffd27c', desc: 'A compact blast that scatters a ring of damaging fragments.' },
+  { id: 'cryo', name: 'Cryo Shell', short: 'CRYO', tier: 2, cost: 3200, speed: 410, bounce: 0, pierce: 0, radius: 0, freeze: 2.5, color: '#7cecff', desc: 'Freezes nearby tanks briefly, leaving them open to follow-up shots.' },
+  { id: 'shock', name: 'Shockwave Charge', short: 'ARC', tier: 3, cost: 4600, speed: 280, bounce: 0, pierce: 0, radius: 150, color: '#b38cff', desc: 'A wide electrical blast reaches across clustered enemies.' },
+  { id: 'cluster', name: 'Cluster Bomb', short: 'CLST', tier: 3, cost: 6200, speed: 250, bounce: 0, pierce: 0, radius: 126, color: '#ff795b', desc: 'Heavy shell with a large blast and bonus crate-breaking power.' },
+  { id: 'rail', name: 'Rail Cannon', short: 'RAIL', tier: 3, cost: 8500, speed: 680, bounce: 0, pierce: 99, radius: 0, color: '#8fffd5', desc: 'High-velocity rail round punches through every tank in its path.' }
 ];
 const DEFAULT_SAVE = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, highestMissionCompleted: 0, totalKills: 0, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', eliteDefeated: [], settings: { fps: '60', difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' } };
 let save = Object.assign({}, DEFAULT_SAVE, { ammoUnlocked: ['standard'], eliteDefeated: [], settings: Object.assign({}, DEFAULT_SAVE.settings) });
@@ -732,6 +744,29 @@ function updateWallet() {
   $('hAmmo').textContent = ammoFor(save.ammoEquipped).short;
   $('armoryCoins').textContent = save.coins.toLocaleString();
 }
+const TIER_NAMES = ['I', 'II', 'III'], TIER_MISSIONS = { 1: 0, 2: 5, 3: 15 };
+function ammoTierReady(ammo) { return save.highestMissionCompleted >= (TIER_MISSIONS[ammo.tier] || 0); }
+function renderAmmoBar() {
+  const bar = $('ammoBar'); bar.hidden = G.state !== 'play'; bar.innerHTML = '';
+  AMMO.forEach((ammo, index) => {
+    const owned = save.ammoUnlocked.includes(ammo.id), selected = save.ammoEquipped === ammo.id;
+    const button = document.createElement('button'); button.type = 'button'; button.disabled = !owned;
+    button.className = 'ammo-slot' + (selected ? ' active' : '') + (owned ? '' : ' locked');
+    button.style.setProperty('--ammo-color', ammo.color);
+    button.title = ammo.name + ' · Tier ' + TIER_NAMES[ammo.tier - 1] + ' · ' + (owned ? ammo.desc : (ammoTierReady(ammo) ? ammo.cost.toLocaleString() + ' coins · unlock in Armory' : 'Reach mission ' + TIER_MISSIONS[ammo.tier] + ', then unlock in Armory'));
+    const key = document.createElement('span'); key.className = 'ammo-key'; key.textContent = String(index + 1);
+    const icon = document.createElement('span'); icon.className = 'ammo-icon';
+    const name = document.createElement('span'); name.textContent = ammo.short;
+    const tier = document.createElement('span'); tier.className = 'ammo-tier'; tier.textContent = 'T' + TIER_NAMES[ammo.tier - 1];
+    button.append(key, icon, name, tier);
+    if (owned) button.addEventListener('click', () => equipAmmo(ammo.id));
+    bar.appendChild(button);
+  });
+}
+function equipAmmo(id) {
+  if (!save.ammoUnlocked.includes(id)) return;
+  save.ammoEquipped = id; persist(); updateWallet(); renderAmmoBar();
+}
 function gainCoins(amount, x, y) {
   save.coins += amount; persist(); updateWallet();
   if (Number.isFinite(x) && Number.isFinite(y)) coinFloats.push({ x, y, t: 0, amount });
@@ -740,11 +775,12 @@ function renderArmory() {
   updateWallet();
   $('armoryGrid').innerHTML = AMMO.map(a => {
     const owned = save.ammoUnlocked.includes(a.id), equipped = save.ammoEquipped === a.id;
-    const action = owned ? (equipped ? 'Equipped' : 'Equip') : 'Unlock';
+    const tierOpen = ammoTierReady(a), action = owned ? (equipped ? 'Equipped' : 'Equip') : tierOpen ? 'Unlock' : 'Tier locked';
     const cost = a.cost ? '<span class="coin-icon">' + a.cost.toLocaleString() + ' coins · unlock once</span>' : '<span>Free</span>';
     return '<article class="armory-card' + (equipped ? ' selected' : '') + '">' +
+      '<span class="tier-tag">Tier ' + TIER_NAMES[a.tier - 1] + (tierOpen ? '' : ' · Clear mission ' + TIER_MISSIONS[a.tier]) + '</span>' +
       '<h3>' + a.name + '</h3><p>' + a.desc + '</p><div class="ammo-meta">' + cost + '<span>' + (equipped ? 'Selected' : owned ? 'Owned' : '') + '</span></div>' +
-      '<button class="btn ' + (equipped ? 'primary' : '') + ' small" type="button" data-ammo="' + a.id + '">' + action + '</button></article>';
+      '<button class="btn ' + (equipped ? 'primary' : '') + ' small" type="button" data-ammo="' + a.id + '" ' + (!owned && !tierOpen ? 'disabled' : '') + '>' + action + '</button></article>';
   }).join('');
 }
 function openArmory() { renderArmory(); setOv('ovArmory'); }
@@ -758,6 +794,7 @@ function saveSetting(key, value) { save.settings[key] = value; persist(); }
 function buyOrEquipAmmo(id) {
   const a = ammoFor(id); if (!AMMO.some(x => x.id === id)) return;
   if (!save.ammoUnlocked.includes(id)) {
+    if (!ammoTierReady(a)) { $('armoryNote').textContent = 'Clear mission ' + TIER_MISSIONS[a.tier] + ' to unlock Tier ' + TIER_NAMES[a.tier - 1] + '.'; return; }
     if (save.coins < a.cost) { $('armoryNote').textContent = 'You need ' + (a.cost - save.coins) + ' more coins to unlock ' + a.name + '.'; return; }
     save.coins -= a.cost; save.ammoUnlocked.push(id);
   }
@@ -768,6 +805,7 @@ function updHud() {
   $('hEnemies').textContent = save.totalKills.toLocaleString();
   $('hLives').innerHTML = G.state === 'title' ? '' : '<i class="life"></i>'.repeat(Math.max(0, G.lives));
   updateWallet();
+  renderAmmoBar();
   $('hMedals').innerHTML =
     '<i class="medal m-bronze' + (save.bronze ? ' on' : '') + '" title="Bronze"></i>' +
     '<i class="medal m-silver' + (save.silver ? ' on' : '') + '" title="Silver"></i>' +
@@ -836,14 +874,14 @@ function grantEliteUnlock(type) {
   save.eliteDefeated.push(type);
   const ammo = ammoFor(ammoId);
   if (!save.ammoUnlocked.includes(ammoId)) save.ammoUnlocked.push(ammoId);
-  persist(); flashToast(TYPES[type].n + ' defeated · ' + ammo.name + ' unlocked');
+  persist(); renderAmmoBar(); flashToast(TYPES[type].n + ' defeated · ' + ammo.name + ' unlocked');
 }
 function cycleAmmo() {
   const owned = AMMO.filter(a => save.ammoUnlocked.includes(a.id));
   if (owned.length < 2) return;
   const index = owned.findIndex(a => a.id === save.ammoEquipped);
   save.ammoEquipped = owned[(index + 1) % owned.length].id;
-  persist(); updateWallet();
+  persist(); updateWallet(); renderAmmoBar();
 }
 
 function startSession(m) {
@@ -865,12 +903,13 @@ function beginBrief(retry) {
   G.note = '';
   setOv('ovBrief'); updHud();
 }
-function startPlay() { G.state = 'play'; setOv(null); cv.classList.add('playing'); }
+function startPlay() { G.state = 'play'; setOv(null); cv.classList.add('playing'); renderAmmoBar(); }
 function togglePause() {
   if (G.state === 'play') { G.state = 'paused'; setOv('ovPause'); cv.classList.remove('playing'); mouseDown = false; }
   else if (G.state === 'paused') { G.state = 'play'; setOv(null); cv.classList.add('playing'); }
+  renderAmmoBar();
 }
-function playerDown() { G.state = 'dead'; G.timer = 1.9; cv.classList.remove('playing'); mouseDown = false; sfx('lose'); }
+function playerDown() { G.state = 'dead'; G.timer = 1.9; cv.classList.remove('playing'); mouseDown = false; renderAmmoBar(); sfx('lose'); }
 function afterDeath() {
   if (G.lives <= 1) {
     G.lives = 0; updHud(); G.state = 'over';
@@ -878,7 +917,7 @@ function afterDeath() {
     setOv('ovOver');
   } else { G.lives--; resetArena(); beginBrief(true); }
 }
-function missionClear() { G.state = 'clear'; G.timer = 1.9; cv.classList.remove('playing'); sfx('win'); }
+function missionClear() { G.state = 'clear'; G.timer = 1.9; cv.classList.remove('playing'); renderAmmoBar(); sfx('win'); }
 function completeMission() {
   const m = G.mission; let ev = null, end = false; G.note = '';
   save.highestMissionCompleted = Math.max(save.highestMissionCompleted, m);
@@ -1415,7 +1454,8 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code.indexOf('Arrow') === 0) { if (G.state === 'play' || G.state === 'brief') e.preventDefault(); }
   if (e.repeat) { keys[e.code] = true; return; }
   keys[e.code] = true;
-  if (e.code === 'KeyQ' && G.state === 'play') cycleAmmo();
+  if (G.state === 'play' && (/^Digit[1-9]$/.test(e.code) || /^Numpad[1-9]$/.test(e.code))) equipAmmo(AMMO[Number(e.code.slice(-1)) - 1].id);
+  else if (e.code === 'KeyQ' && G.state === 'play') cycleAmmo();
   else if (e.code === 'KeyE' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') playerMine();
   else if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   else if (e.code === 'KeyM') toggleMute();
@@ -1494,7 +1534,7 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=16"></script>
+<script src="version-check.js?v=17"></script>
 
 </body></html>
 
