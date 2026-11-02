@@ -2,17 +2,16 @@
 
 TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 
-## Latest update — V5
+## Latest update — V6
 
-- Adds richer arena floor, crate, and tank graphics.
-- Adds stronger blast effects and destructible coin crates.
-- Awards persistent coins for enemy kills and coin crates.
-- Adds a main-menu Armory with Standard, Piercer, Blast, and Demolition ammunition.
-- Adds permanent ammo unlocks and Q to cycle through equipped types.
+- Automatically checks `version.json` every 30 seconds, following the CastleRangers update flow.
+- Shows an update-ready notice during play and installs the update automatically at the title screen.
+- Refreshes with a cache-busted version URL and progress notice.
+- Includes persistent coins, coin crates, an Armory, and unlockable ammo types from V5.
 
 ## Play locally
 
-Open `index.html` in a modern browser. No build step or package installation is required.
+Open `index.html` in a modern browser. No build step or package installation is required. The automatic version check runs on the hosted site; browsers restrict local-file requests.
 
 ## Play online
 
@@ -40,5 +39,3 @@ TankShot uses the same centered 16:9 viewport sizing as CastleRangers V35:
 - Press **Q** to cycle unlocked ammo.
 - Use **E**, **Shift**, or right click to place a mine.
 - Press **P** or **Esc** to pause.
-
-The V5 menu background and logo are in `assets/`.
