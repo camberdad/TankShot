@@ -182,7 +182,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 22">V22</span>
+      <span class="version-badge" title="Game version 23">V23</span>
     </div>
   </header>
 
@@ -211,7 +211,7 @@ canvas.playing { cursor: none; }
         <li><b>Aim</b>Mouse</li>
         <li><b>Fire</b>Click or Space</li>
         <li><b>Ammo</b>1–9 select · Q cycles unlocked types</li>
-        <li><b>Mine</b>E, Shift or right click</li>
+        <li><b>Mine</b>E or Shift</li>
         <li><b>Pause</b>P or Esc</li>
         <li><b>Sound</b>M</li>
       </ul>
@@ -304,8 +304,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=22"></script>
-<script src="leaderboard.js?v=22"></script>
+<script src="leaderboard-config.js?v=23"></script>
+<script src="leaderboard.js?v=23"></script>
 <script>
 (function () {
 'use strict';
@@ -1582,7 +1582,7 @@ cv.addEventListener('pointerdown', e => {
   const w = toWorld(e); aim.x = w.x; aim.y = w.y; aimSeen = true;
   actx();
   if (G.state === 'brief') { G.timer = 0; return; }
-  if (e.button === 2) { playerMine(); return; }
+  if (e.button === 2) return;
   mouseDown = true;
   try { cv.setPointerCapture(e.pointerId); } catch (err) {}
 });
@@ -1677,7 +1677,7 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=22"></script>
+<script src="version-check.js?v=23"></script>
 
 </body></html>
 
