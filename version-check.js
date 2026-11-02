@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var CURRENT_VERSION = '15';
+  var CURRENT_VERSION = '16';
   var latestVersion = '';
   var checkInProgress = false;
   var applyingUpdate = false;
