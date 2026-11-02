@@ -60,7 +60,7 @@ body {
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.small { padding: 6px 12px; font-size: 14px; }
 .btn:focus-visible, .step button:focus-visible { outline: 3px solid #8fbcff; outline-offset: 2px; }
-.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=15') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
+.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=16') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; touch-action: none; user-select: none; -webkit-user-select: none; }
 canvas.playing { cursor: none; }
 .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,16,.82); padding: 16px; text-align: center; overflow: auto; }
@@ -78,6 +78,14 @@ canvas.playing { cursor: none; }
 .keys b { color: var(--accent); font-weight: 700; letter-spacing: .06em; margin-right: 6px; }
 .shelf { display: flex; gap: 12px; align-items: center; justify-content: center; min-height: 22px; color: var(--muted); font-size: 14px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600; }
 .shelf .medal { width: 22px; height: 22px; }
+.profile-panel { width:min(520px,100%); max-height:100%; text-align:left; }
+.profile-list { display:grid; gap:8px; width:100%; max-height:42vh; overflow:auto; margin:12px 0; }
+.profile-choice { display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%; padding:12px 14px; border:1px solid var(--line); border-radius:5px; background:var(--panel-2); color:var(--ink); font:600 18px var(--font-body); text-align:left; cursor:pointer; }
+.profile-choice:hover,.profile-choice.active { border-color:var(--accent); }
+.profile-meta { color:var(--muted); font-size:14px; text-align:right; }
+.profile-create { display:flex; gap:8px; width:100%; }
+.profile-create input { flex:1; min-width:0; padding:9px 10px; border:1px solid var(--line); border-radius:4px; background:var(--panel); color:var(--ink); font:16px var(--font-body); }
+.game-toast { position:absolute; z-index:4; top:12px; left:50%; transform:translateX(-50%); max-width:90%; padding:9px 14px; border:1px solid rgba(255,211,107,.7); border-radius:5px; background:rgba(20,24,31,.92); color:#ffe17a; font-weight:700; letter-spacing:.04em; box-shadow:0 4px 18px #0008; pointer-events:none; }
 .kicker { font-size: 15px; letter-spacing: .3em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .big { font-family: var(--font-display); font-size: clamp(48px, 12vw, 120px); line-height: 1; color: var(--accent); text-shadow: 0 4px 0 rgba(0,0,0,.45); }
 .info { font-size: 24px; font-weight: 700; letter-spacing: .04em; }
@@ -145,7 +153,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 15">V15</span>
+      <span class="version-badge" title="Game version 16">V16</span>
     </div>
   </header>
 
@@ -153,12 +161,13 @@ canvas.playing { cursor: none; }
     <canvas id="cv"></canvas>
 
     <div class="overlay" id="ovTitle">
-      <img class="logo-image" src="assets/tankshot-logo.svg?v=15" alt="TankShot">
+      <img class="logo-image" src="assets/tankshot-logo.svg?v=16" alt="TankShot">
       <p class="tag">One hit ends you. Bounce shots off the blocks, lay mines at the chokepoints and clear every arena.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
         <button class="btn" id="bArmory" type="button">Armory</button>
         <button class="btn" id="bSettings" type="button">Settings</button>
+        <button class="btn" id="bProfiles" type="button">Switch Player</button>
         <div class="step" id="stepWrap" hidden>
           <span>Start at mission</span>
           <button id="stDec" type="button" aria-label="Earlier mission">&lsaquo;</button>
@@ -177,7 +186,18 @@ canvas.playing { cursor: none; }
       </ul>
       <div class="shelf" id="shelf"></div>
       <div class="hint" id="titleRunStats"></div>
+      <div class="hint" id="activePlayerLabel"></div>
     </div>
+
+    <div class="overlay armory-overlay" id="ovProfiles" hidden>
+      <section class="armory-panel profile-panel">
+        <header class="armory-head"><h2 class="h2">Choose Player</h2><button class="btn small" id="bProfilesBack" type="button">Back</button></header>
+        <p class="armory-note">Select a saved account or create a new name. Each player keeps their own missions, coins, and unlocks on this device.</p>
+        <div class="profile-list" id="profileList"></div>
+        <div class="profile-create"><input id="newProfileName" maxlength="16" autocomplete="off" placeholder="Enter player name"><button class="btn primary" id="newProfileBtn" type="button">New Player</button></div>
+      </section>
+    </div>
+    <div class="game-toast" id="gameToast" hidden></div>
 
     <div class="overlay armory-overlay" id="ovArmory" hidden>
       <section class="armory-panel">
@@ -295,7 +315,10 @@ const TYPES = [null,
   { n: 'Green',  col: '#3fbf5a', dk: '#1d6e30', lt: '#8ef0a1', mv: 'static', spd: 0,   turn: 3.0, bs: 380, b: 2, mb: 2, cd: 1.25, err: .03,  tol: .05, lead: 1, mines: 0, dodge: 0 },
   { n: 'Violet', col: '#8a63e8', dk: '#46299a', lt: '#bfa4ff', mv: 'wander', spd: 108, turn: 3.2, bs: 255, b: 1, mb: 3, cd: 1.15, err: .07,  tol: .06, lead: 0, mines: 1, dodge: 1 },
   { n: 'White',  col: '#f1f3f5', dk: '#9aa0a6', lt: '#ffffff', mv: 'wander', spd: 88,  turn: 3.0, bs: 265, b: 1, mb: 2, cd: 1.2,  err: .06,  tol: .06, lead: 0, mines: 0, dodge: 1, stealth: 1 },
-  { n: 'Black',  col: '#2b2f38', dk: '#0f1115', lt: '#5b6272', mv: 'chase',  spd: 145, turn: 3.6, bs: 430, b: 2, mb: 3, cd: .9,   err: .025, tol: .05, lead: 1, mines: 1, dodge: 1 }
+  { n: 'Black',  col: '#2b2f38', dk: '#0f1115', lt: '#5b6272', mv: 'chase',  spd: 145, turn: 3.6, bs: 430, b: 2, mb: 3, cd: .9,   err: .025, tol: .05, lead: 1, mines: 1, dodge: 1 },
+  { n: 'Sand Raider', col: '#d6a348', dk: '#80531f', lt: '#ffe0a0', mv: 'chase', spd: 170, turn: 4.0, bs: 300, b: 0, mb: 2, cd: 1.05, err: .11, tol: .08, lead: 0, mines: 0, dodge: 1 },
+  { n: 'Bulwark', col: '#607b73', dk: '#293e3a', lt: '#a6c9b8', mv: 'wander', spd: 52, turn: 1.8, bs: 455, b: 2, mb: 3, cd: 1.65, err: .025, tol: .055, lead: 1, mines: 1, dodge: 0 },
+  { n: 'Siege Ember', col: '#d65335', dk: '#74231c', lt: '#ffad62', mv: 'chase', spd: 102, turn: 4.2, bs: 340, b: 2, mb: 4, cd: .72, err: .045, tol: .05, lead: 1, mines: 1, dodge: 1 }
 ];
 
 /* ================= maps ================= */
@@ -389,6 +412,20 @@ const THEMES = {
   35: 'cross', 40: 'holes', 45: 'zigzag', 50: 'bunkers', 55: 'cork', 60: 'ring', 65: 'walls', 70: 'maze',
   80: 'pillars', 90: 'rooms', 100: 'ring'
 };
+const ARENA_PALETTES = {
+  sand: { light: '#e6d3a5', dark: '#d6bd84', edge: 'rgba(101,70,31,.16)', fleck: 'rgba(117,78,37,.12)', hole: ['#2b2118', '#110d0a'], block: ['#d9a064', '#a96d38', '#633d21'], tall: ['#c6d3dd', '#75899a', '#3d4c59'], cork: ['#efc8ae', '#bd8c70', '#79513c'], frame: ['#8796a1', '#3d4b56', '#17212a'] },
+  jungle: { light: '#9bb879', dark: '#789658', edge: 'rgba(35,71,34,.2)', fleck: 'rgba(36,72,31,.16)', hole: ['#182b24', '#0b1713'], block: ['#bd8750', '#805332', '#49351f'], tall: ['#7a9c76', '#47634e', '#263d2d'], cork: ['#c09a69', '#80613d', '#44331f'], frame: ['#8caa86', '#405d45', '#1b3024'] },
+  ice: { light: '#d4e4e8', dark: '#a8c8d0', edge: 'rgba(35,82,100,.2)', fleck: 'rgba(255,255,255,.3)', hole: ['#142b3c', '#081520'], block: ['#c6d7dc', '#829ca7', '#435863'], tall: ['#e1f3fa', '#92b7c4', '#486874'], cork: ['#b8d1d4', '#78969d', '#3e5961'], frame: ['#9dc2d1', '#486979', '#1e3847'] },
+  ember: { light: '#d69a67', dark: '#b96d49', edge: 'rgba(79,33,23,.22)', fleck: 'rgba(79,33,23,.18)', hole: ['#32150f', '#170905'], block: ['#bc6543', '#783a2e', '#401e1b'], tall: ['#a99b91', '#685b55', '#352c2a'], cork: ['#cd805a', '#8c4938', '#4e2824'], frame: ['#997064', '#573d3a', '#2b1e20'] },
+  steel: { light: '#9daab3', dark: '#74828d', edge: 'rgba(22,39,52,.22)', fleck: 'rgba(30,48,60,.16)', hole: ['#1b2832', '#0a1016'], block: ['#a77c54', '#745536', '#3f3024'], tall: ['#bdcbd3', '#71828c', '#34434d'], cork: ['#b99472', '#765e48', '#3f3328'], frame: ['#b4c5d0', '#536875', '#202f38'] }
+};
+function arenaPalette(id) {
+  if ([3, 6, 8, 13, 16, 25, 45].includes(id)) return ARENA_PALETTES.jungle;
+  if ([7, 12, 18, 40, 65, 80].includes(id)) return ARENA_PALETTES.ice;
+  if ([9, 15, 20, 50, 70, 90].includes(id)) return ARENA_PALETTES.ember;
+  if ([10, 17, 35, 55, 60, 100].includes(id)) return ARENA_PALETTES.steel;
+  return ARENA_PALETTES.sand;
+}
 const MILESTONES = [30, 40, 50, 60, 70, 80, 90, 100];
 const INTROS = [25, 35, 45, 55, 65];
 const BASE_POOL = [2, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];   // missions 1, 4, 5 and 20 are excluded from rotation
@@ -482,7 +519,7 @@ function chooseArena(m, rnd) {
   return pool[Math.floor(rnd() * pool.length)];
 }
 function randType(m, rnd) {
-  const maxT = Math.min(9, 5 + Math.floor((m - 20) / 8));
+  const maxT = Math.min(12, 5 + Math.floor((m - 20) / 6));
   let t = 1 + Math.floor(rnd() * maxT);
   if (t === 1 && m > 40 && rnd() < .7) t = 2 + Math.floor(rnd() * (maxT - 1));
   return t;
@@ -522,18 +559,45 @@ const AMMO = [
   { id: 'cluster', name: 'Cluster Bomb', short: 'CLST', cost: 6200, speed: 250, bounce: 0, pierce: 0, radius: 126, color: '#ff795b', desc: 'Heavy shell with a large blast and bonus crate-breaking power.' },
   { id: 'rail', name: 'Rail Cannon', short: 'RAIL', cost: 8500, speed: 680, bounce: 0, pierce: 99, radius: 0, color: '#8fffd5', desc: 'High-velocity rail round punches through every tank in its path.' }
 ];
-let save = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, highestMissionCompleted: 0, totalKills: 0, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', settings: { fps: '60', difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' } };
+const DEFAULT_SAVE = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, highestMissionCompleted: 0, totalKills: 0, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', eliteDefeated: [], settings: { fps: '60', difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' } };
+let save = Object.assign({}, DEFAULT_SAVE, { ammoUnlocked: ['standard'], eliteDefeated: [], settings: Object.assign({}, DEFAULT_SAVE.settings) });
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && typeof s === 'object') save = Object.assign(save, s); } catch (e) {}
-if (!Array.isArray(save.ammoUnlocked)) save.ammoUnlocked = ['standard'];
-if (!save.ammoUnlocked.includes('standard')) save.ammoUnlocked.unshift('standard');
-if (!AMMO.some(a => a.id === save.ammoEquipped && save.ammoUnlocked.includes(a.id))) save.ammoEquipped = 'standard';
-if (!Number.isFinite(save.coins) || save.coins < 0) save.coins = 0;
-save.highestMissionCompleted = Math.max(0, Math.floor(Number(save.highestMissionCompleted) || 0));
-save.totalKills = Math.max(0, Math.floor(Number(save.totalKills) || 0));
-save.settings = Object.assign({ fps: '60', difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' }, save.settings || {});
-if (!['30', '60', '120', '0'].includes(String(save.settings.fps))) save.settings.fps = '60';
+function normalizeSave(value) {
+  const next = Object.assign({}, DEFAULT_SAVE, value || {});
+  next.ammoUnlocked = Array.isArray(next.ammoUnlocked) ? next.ammoUnlocked.filter(id => AMMO.some(a => a.id === id)) : ['standard'];
+  if (!next.ammoUnlocked.includes('standard')) next.ammoUnlocked.unshift('standard');
+  if (!AMMO.some(a => a.id === next.ammoEquipped && next.ammoUnlocked.includes(a.id))) next.ammoEquipped = 'standard';
+  if (!Number.isFinite(next.coins) || next.coins < 0) next.coins = 0;
+  next.highestMissionCompleted = Math.max(0, Math.floor(Number(next.highestMissionCompleted) || 0));
+  next.totalKills = Math.max(0, Math.floor(Number(next.totalKills) || 0));
+  next.eliteDefeated = Array.isArray(next.eliteDefeated) ? next.eliteDefeated.map(Number).filter(n => n >= 10 && n <= 12) : [];
+  next.settings = Object.assign({}, DEFAULT_SAVE.settings, next.settings || {});
+  if (!['30', '60', '120', '0'].includes(String(next.settings.fps))) next.settings.fps = '60';
+  return next;
+}
+save = normalizeSave(save);
+const PROFILE_DB_KEY = 'tankshot.profiles.v1';
+let profileDb = { current: '', list: {} }, currentProfile = '';
+try { const data = JSON.parse(localStorage.getItem(PROFILE_DB_KEY) || '{}'); if (data && data.list && typeof data.list === 'object') profileDb = data; } catch (e) {}
+if (!Object.keys(profileDb.list).length) {
+  let initialName = '', hasLegacySave = false;
+  try { initialName = (localStorage.getItem('tankshot.playerName') || '').trim().slice(0, 16); hasLegacySave = !!localStorage.getItem(SAVE_KEY); } catch (e) {}
+  if (initialName || hasLegacySave) {
+    initialName = initialName || 'Commander';
+    profileDb.list[initialName] = JSON.parse(JSON.stringify(save));
+    profileDb.current = initialName;
+  }
+}
+currentProfile = profileDb.current && profileDb.list[profileDb.current] ? profileDb.current : '';
+if (currentProfile) save = normalizeSave(profileDb.list[currentProfile]);
 let runStats = { shots: 0, kills: 0, level: 1 };
-function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
+function persist() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+  if (currentProfile) {
+    profileDb.current = currentProfile; profileDb.list[currentProfile] = JSON.parse(JSON.stringify(save));
+    try { localStorage.setItem(PROFILE_DB_KEY, JSON.stringify(profileDb)); } catch (e) {}
+  }
+}
 
 /* ================= audio ================= */
 let AC = null, muted = false, noiseBuf = null;
@@ -588,18 +652,19 @@ function mkTank(type, c, r, isPlayer, idx) {
 
 function drawFloor() {
   const x = floorL.x;
+  const palette = arenaPalette(cfg ? cfg.mapId : 1);
   x.fillStyle = '#342c23'; x.fillRect(0, 0, W, H);
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const px = c * TS, py = r * TS + OY, light = ((c + r) & 1) === 0;
     const tile = x.createLinearGradient(px, py, px + TS, py + TS);
-    tile.addColorStop(0, light ? '#dfd0aa' : '#d4c49a'); tile.addColorStop(1, light ? '#d5c49a' : '#cbb98d');
+    tile.addColorStop(0, light ? palette.light : palette.dark); tile.addColorStop(1, light ? palette.dark : palette.light);
     x.fillStyle = tile; x.fillRect(px, py, TS, TS);
     x.fillStyle = 'rgba(255,250,224,.18)'; x.fillRect(px + 1, py + 1, TS - 2, 1);
     x.fillStyle = 'rgba(78,57,28,.12)'; x.fillRect(px + 1, py + TS - 2, TS - 2, 1);
-    x.strokeStyle = 'rgba(93,70,37,.12)'; x.lineWidth = 1; x.strokeRect(px + .5, py + .5, TS - 1, TS - 1);
+    x.strokeStyle = palette.edge; x.lineWidth = 1; x.strokeRect(px + .5, py + .5, TS - 1, TS - 1);
     for (let i = 0; i < 3; i++) {
       const seed = (c * 47 + r * 91 + i * 29) % 997;
-      x.fillStyle = i & 1 ? 'rgba(255,248,220,.16)' : 'rgba(117,89,48,.1)';
+      x.fillStyle = i & 1 ? 'rgba(255,248,220,.16)' : palette.fleck;
       x.fillRect(px + 5 + seed % 29, py + 6 + (seed * 7) % 27, 1.5, 1.5);
     }
   }
@@ -610,8 +675,8 @@ function drawFloor() {
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     if (grid[r][c] !== T_HOLE) continue;
     const px = c * TS, py = r * TS + OY;
-    x.fillStyle = '#1a1411'; x.fillRect(px, py, TS, TS);
-    x.fillStyle = '#0d0a08'; x.fillRect(px + 3, py + 5, TS - 6, TS - 8);
+    x.fillStyle = palette.hole[0]; x.fillRect(px, py, TS, TS);
+    x.fillStyle = palette.hole[1]; x.fillRect(px + 3, py + 5, TS - 6, TS - 8);
     x.fillStyle = 'rgba(255,255,255,.1)'; x.fillRect(px, py + TS - 2, TS, 2);
     x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(px, py, TS, 3);
   }
@@ -658,7 +723,7 @@ function placeCoinCrates() {
 }
 
 /* ================= HUD & overlays ================= */
-const OVS = ['ovTitle', 'ovArmory', 'ovSettings', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
+const OVS = ['ovTitle', 'ovProfiles', 'ovArmory', 'ovSettings', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
 function setOv(name) { for (const id of OVS) $(id).hidden = (id !== name); }
 function enemiesLeft() { let n = 0; for (const t of tanks) if (!t.isPlayer && t.alive) n++; return n; }
 function ammoFor(id) { return AMMO.find(a => a.id === id) || AMMO[0]; }
@@ -717,6 +782,7 @@ function showTitle() {
   if (save.gold) shelf.push('<i class="medal m-gold on"></i>');
   if (save.plat) shelf.push('<i class="medal m-plat on"></i><span>x' + save.plat + '</span>');
   $('shelf').innerHTML = shelf.length ? shelf.join('') : 'No medals yet. Clear mission 5 for bronze.';
+  startM = Math.max(1, save.highestMissionCompleted || 1);
   const lim = save.unlocked ? 100 : 20, top = Math.min(lim, save.max);
   $('stepWrap').hidden = top <= 1;
   if (startM > top) startM = top;
@@ -724,9 +790,54 @@ function showTitle() {
   $('armoryNote').textContent = 'Unlock ammo with coins. Earn coins by destroying enemy tanks and coin crates.';
   updHud();
   $('titleRunStats').textContent = 'Best run: Level ' + (save.bestLevel || 1) + ' · ' + (save.bestKills || 0) + ' tanks defeated';
+  $('activePlayerLabel').textContent = 'Player: ' + (currentProfile || 'Guest');
   window.dispatchEvent(new Event('tankshot-title-screen'));
 }
-let startM = 1;
+let startM = Math.max(1, save.highestMissionCompleted || 1);
+function showProfiles() {
+  G.state = 'profiles'; cv.classList.remove('playing'); setOv('ovProfiles');
+  $('bProfilesBack').hidden = !currentProfile;
+  const list = $('profileList'); list.innerHTML = '';
+  const names = Object.keys(profileDb.list).sort((a, b) => a.localeCompare(b));
+  if (!names.length) {
+    const empty = document.createElement('p'); empty.className = 'armory-note'; empty.textContent = 'No saved players yet. Enter a name to begin.'; list.appendChild(empty);
+  }
+  for (const name of names) {
+    const data = profileDb.list[name] || {}, button = document.createElement('button');
+    button.type = 'button'; button.className = 'profile-choice' + (name === currentProfile ? ' active' : '');
+    const label = document.createElement('span'); label.textContent = name;
+    const stats = document.createElement('span'); stats.className = 'profile-meta';
+    stats.textContent = 'Mission ' + (Number(data.highestMissionCompleted) || 0) + ' · ' + (Number(data.totalKills) || 0).toLocaleString() + ' defeats';
+    button.append(label, stats); button.addEventListener('click', () => selectProfile(name)); list.appendChild(button);
+  }
+  $('newProfileName').value = '';
+  $('newProfileName').focus();
+}
+function selectProfile(name) {
+  if (!profileDb.list[name]) return;
+  currentProfile = name; save = normalizeSave(profileDb.list[name]);
+  startM = Math.max(1, save.highestMissionCompleted || 1); persist(); showTitle();
+}
+function createProfile() {
+  const input = $('newProfileName'), name = input.value.trim().slice(0, 16);
+  if (!name) { input.focus(); return; }
+  const existing = Object.keys(profileDb.list).find(n => n.toLowerCase() === name.toLowerCase());
+  if (existing) { selectProfile(existing); return; }
+  profileDb.list[name] = normalizeSave({}); selectProfile(name);
+}
+let toastTimer = 0;
+function flashToast(message) {
+  const toast = $('gameToast'); toast.textContent = message; toast.hidden = false;
+  window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => { toast.hidden = true; }, 2600);
+}
+function grantEliteUnlock(type) {
+  const unlocks = { 10: 'piercer', 11: 'demolition', 12: 'shock' }, ammoId = unlocks[type];
+  if (!ammoId || save.eliteDefeated.includes(type)) return;
+  save.eliteDefeated.push(type);
+  const ammo = ammoFor(ammoId);
+  if (!save.ammoUnlocked.includes(ammoId)) save.ammoUnlocked.push(ammoId);
+  persist(); flashToast(TYPES[type].n + ' defeated · ' + ammo.name + ' unlocked');
+}
 function cycleAmmo() {
   const owned = AMMO.filter(a => save.ammoUnlocked.includes(a.id));
   if (owned.length < 2) return;
@@ -854,7 +965,7 @@ function killTank(t) {
   t.alive = false;
   burst(t.x, t.y, 26, ['#ffcf5a', '#ff8a3c', '#3a3a3a', '#d9d9d9'], 190, .8, 4);
   scorch(t.x, t.y, 24, .55); sfx('pop'); if (save.settings.shake) G.shake = Math.max(G.shake, 6);
-  if (t.isPlayer) playerDown(); else { cfg.dead.add(t.idx); if (G.state === 'play') { runStats.kills++; save.totalKills++; save.bestKills = Math.max(save.bestKills || 0, runStats.kills); persist(); } gainCoins(25, t.x, t.y); }
+  if (t.isPlayer) playerDown(); else { cfg.dead.add(t.idx); if (G.state === 'play') { runStats.kills++; save.totalKills++; save.bestKills = Math.max(save.bestKills || 0, runStats.kills); grantEliteUnlock(t.type); persist(); } gainCoins(25, t.x, t.y); }
   updHud();
 }
 function openCoinCrate(c, r, owner) {
@@ -866,10 +977,12 @@ function openCoinCrate(c, r, owner) {
   burst(x, y, 20, ['#ffd867', '#e29b3b', '#9f602c', '#fff2b0'], 150, .55, 3.5);
   drawFloor(); sfx('pop'); return true;
 }
-function boom(x, y, radius) {
+function boom(x, y, radius, ammoId) {
   radius = radius || BR;
-  booms.push({ x, y, t: 0, rad: radius }); if (save.settings.shake) G.shake = Math.max(G.shake, 12); sfx('boom');
-  burst(x, y, save.settings.particles === 'low' ? 16 : 40, ['#ffcf5a', '#ff7a2e', '#444', '#bbb'], 260, .9, 5);
+  booms.push({ x, y, t: 0, rad: radius, kind: ammoId || 'mine' }); if (save.settings.shake) G.shake = Math.max(G.shake, 12); sfx('boom');
+  const sparks = ammoId === 'shock' ? ['#dcf8ff', '#7bdcff', '#9a80ff', '#f1fbff'] : ammoId === 'cryo' ? ['#efffff', '#7cecff', '#a9dfff', '#dffbff'] : ammoId === 'cluster' ? ['#fff0b0', '#ff795b', '#d94b31', '#666'] : ['#ffdf74', '#ff7a2e', '#b94427', '#ddd'];
+  burst(x, y, save.settings.particles === 'low' ? 16 : 36, sparks, 270, .82, 5);
+  if (save.settings.particles !== 'low') burst(x, y, 9, ['#24272b', '#41464a', '#77766f'], 82, 1.1, 8);
   scorch(x, y, radius * .7, .5);
   for (const t of tanks) if (t.alive && Math.hypot(t.x - x, t.y - y) < radius + 4) killTank(t);
   let changed = false;
@@ -889,7 +1002,7 @@ function boom(x, y, radius) {
   for (const m of mines) if (m.fuse === null && Math.hypot(m.x - x, m.y - y) < radius) m.fuse = .12 + Math.random() * .08;
 }
 function projectileImpact(x, y, b) {
-  boom(x, y, b.explosive);
+  boom(x, y, b.explosive, b.ammo);
   if (b.ammo !== 'shrapnel') return;
   for (let i = 0; i < 8; i++) {
     const a = i * TAU / 8;
@@ -1115,6 +1228,7 @@ function update(dt) {
 /* ================= rendering ================= */
 function drawBlock(c, r, t) {
   const x = c * TS, y = r * TS + OY, h = t === T_TALL ? 2 : 1, lift = h * EXT;
+  const terrain = arenaPalette(cfg ? cfg.mapId : 1);
   const top = y - lift;
   ctx.fillStyle = 'rgba(25,18,10,.24)'; ctx.fillRect(x + 7, top + TS - 1, TS, lift + 8);
   if (t === T_COIN) {
@@ -1132,7 +1246,7 @@ function drawBlock(c, r, t) {
     ctx.fillStyle = 'rgba(255,255,255,.46)'; ctx.fillRect(x + 4, top + 4, 5, 2);
     return;
   }
-  const pal = t === T_FRAME ? ['#768394', '#303946', '#141a21'] : t === T_TALL ? ['#b8c8d8', '#748396', '#394655'] : t === T_CORK ? ['#efc8ae', '#bd8c70', '#79513c'] : ['#d9a064', '#a96d38', '#633d21'];
+  const pal = t === T_FRAME ? terrain.frame : t === T_TALL ? terrain.tall : t === T_CORK ? terrain.cork : terrain.block;
   ctx.fillStyle = pal[1]; ctx.fillRect(x + 1, y + TS - lift, TS - 1, lift);
   const face = ctx.createLinearGradient(x, top, x + TS, top + TS);
   face.addColorStop(0, pal[0]); face.addColorStop(1, pal[1]);
@@ -1183,6 +1297,16 @@ function drawTank(t) {
   ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fillRect(-10, -9, 18, 2);
   ctx.fillStyle = 'rgba(10,15,20,.2)'; ctx.fillRect(-10, 7, 20, 2);
   for (const xx of [-9, -3, 3, 9]) { ctx.fillStyle = 'rgba(15,20,25,.32)'; ctx.fillRect(xx, -10, 2, 2); ctx.fillRect(xx, 8, 2, 2); }
+  if (!t.isPlayer && t.type === 10) {
+    ctx.strokeStyle = '#ffe4a0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-7, -10); ctx.lineTo(3, 10); ctx.moveTo(1, -10); ctx.lineTo(11, 8); ctx.stroke();
+  } else if (!t.isPlayer && t.type === 11) {
+    ctx.fillStyle = '#394c49'; ctx.strokeStyle = '#172320'; ctx.lineWidth = 1.5;
+    ctx.fillRect(-14, -13, 10, 5); ctx.strokeRect(-14, -13, 10, 5); ctx.fillRect(-14, 8, 10, 5); ctx.strokeRect(-14, 8, 10, 5);
+    ctx.fillStyle = '#c9dfd3'; ctx.fillRect(-11, -12, 4, 1.5); ctx.fillRect(-11, 9.5, 4, 1.5);
+  } else if (!t.isPlayer && t.type === 12) {
+    ctx.fillStyle = '#ffbc62'; ctx.fillRect(-10, -3, 5, 6); ctx.fillRect(7, -3, 5, 6);
+    ctx.fillStyle = 'rgba(255,105,44,.42)'; ctx.beginPath(); ctx.arc(-8, 0, 8, 0, TAU); ctx.fill();
+  }
   ctx.rotate(t.tur - t.body);
   const rc = t.recoil * 4;
   const barrel = ctx.createLinearGradient(0, -4, 0, 4); barrel.addColorStop(0, cf.lt); barrel.addColorStop(.5, cf.col); barrel.addColorStop(1, cf.dk);
@@ -1240,13 +1364,14 @@ function render() {
   for (const b of booms) {
     const k = b.t / .7, rad = (b.rad || BR) * (.18 + .82 * Math.min(1, k * 2.4)), a = 1 - k, y = b.y + OY;
     const g = ctx.createRadialGradient(b.x, y, 2, b.x, y, rad);
-    const core = b.coin ? '255,232,142' : '255,246,205', flame = b.coin ? '244,166,47' : '255,112,32';
+    const tint = b.kind === 'shock' ? ['196,226,255', '119,92,255'] : b.kind === 'cryo' ? ['226,252,255', '67,183,235'] : b.kind === 'cluster' ? ['255,214,147', '219,55,44'] : ['255,246,205', '255,112,32'];
+    const core = b.coin ? '255,232,142' : tint[0], flame = b.coin ? '244,166,47' : tint[1];
     g.addColorStop(0, 'rgba(' + core + ',' + (.98 * a) + ')');
     g.addColorStop(.25, 'rgba(255,211,95,' + (.94 * a) + ')');
     g.addColorStop(.62, 'rgba(' + flame + ',' + (.72 * a) + ')');
     g.addColorStop(1, 'rgba(224,54,24,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, y, rad, 0, TAU); ctx.fill();
-    ctx.strokeStyle = (b.coin ? 'rgba(255,240,177,' : 'rgba(255,230,180,') + (.82 * a) + ')';
+    ctx.strokeStyle = (b.coin ? 'rgba(255,240,177,' : b.kind === 'shock' ? 'rgba(196,226,255,' : b.kind === 'cryo' ? 'rgba(226,252,255,' : 'rgba(255,230,180,') + (.82 * a) + ')';
     ctx.lineWidth = b.coin ? 2 : 3; ctx.beginPath(); ctx.arc(b.x, y, rad * .92, 0, TAU); ctx.stroke();
     if (k < .45) { ctx.strokeStyle = 'rgba(255,247,220,' + (1 - k / .45) * .7 + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(b.x, y, rad * (1.1 + k), 0, TAU); ctx.stroke(); }
   }
@@ -1321,6 +1446,10 @@ $('bQuit').addEventListener('click', () => { cfg = null; tanks = []; grid = null
 $('bPlay').addEventListener('click', () => { actx(); startSession(startM); });
 $('bArmory').addEventListener('click', openArmory);
 $('bSettings')?.addEventListener('click', openSettings);
+$('bProfiles')?.addEventListener('click', showProfiles);
+$('bProfilesBack')?.addEventListener('click', () => currentProfile ? showTitle() : showProfiles());
+$('newProfileBtn')?.addEventListener('click', createProfile);
+$('newProfileName')?.addEventListener('keydown', e => { if (e.key === 'Enter') createProfile(); });
 $('bSettingsBack')?.addEventListener('click', showTitle);
 $('setFps')?.addEventListener('change', e => saveSetting('fps', e.target.value));
 $('setDifficulty')?.addEventListener('change', e => saveSetting('difficulty', e.target.value));
@@ -1358,14 +1487,14 @@ function frame(ts) {
   if (steps === MAX_SIM_STEPS) accumulator = 0;
   render();
 }
-showTitle();
+if (currentProfile) showTitle(); else showProfiles();
 window.requestAnimationFrame(frame);
 
 if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession, enterMission, keys, aim, stick, get tanks() { return tanks; }, get player() { return player; }, get cfg() { return cfg; }, get mines() { return mines; }, get bullets() { return bullets; }, save, think, MILESTONES, INTROS, BASE_POOL, setSeed: s => { SEED = s; } });
 })();
 </script>
 
-<script src="version-check.js?v=15"></script>
+<script src="version-check.js?v=16"></script>
 
 </body></html>
 
