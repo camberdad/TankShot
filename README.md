@@ -2,7 +2,7 @@
 
 TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 
-## Latest update — V11
+## Latest update — V12
 
 - Adds 30, 60, 120, and Unlimited FPS choices in Settings.
 - Runs physics at a fixed 120 Hz simulation step and caps drawing independently, keeping movement and collision timing consistent across frame-rate options.
@@ -13,3 +13,7 @@ TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 The local Documents build is configured for the dedicated TankShot JSONBin. The public GitHub Pages build omits the master key and uses its per-device score fallback. A secure serverless relay is required for shared scores on the public site.
 
 Host the repository with GitHub Pages and embed its `index.html` page in your site.
+- Displays the saved highest mission completed and lifetime enemy tank defeats in the HUD.
+- Shows a compact V12 version label on screen.
+- Sends lifetime mission and defeat totals to the high scores after each completed mission, retaining legacy JSONBin field compatibility.
+
