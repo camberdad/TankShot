@@ -182,7 +182,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 25">V25</span>
+      <span class="version-badge" title="Game version 26">V26</span>
     </div>
   </header>
 
@@ -303,8 +303,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=25"></script>
-<script src="leaderboard.js?v=25"></script>
+<script src="leaderboard-config.js?v=26"></script>
+<script src="leaderboard.js?v=26"></script>
 <script>
 (function () {
 'use strict';
@@ -872,12 +872,13 @@ function openSettings() {
   setOv('ovSettings');
 }
 function saveSetting(key, value) { save.settings[key] = value; persist(); }
+let scoreWriteStatus = '';
 function renderScores() {
   $('scoreStatus').textContent = window.TankShotScores && TankShotScores.configured ? 'Loading leaderboard…' : 'Add a restricted JSONBin X-Access-Key to enable live scores.';
   $('scoreBoard').innerHTML = '';
   if (!window.TankShotScores) { $('scoreStatus').textContent = 'Leaderboard unavailable'; return; }
   TankShotScores.fetch(function (scores, online) {
-    $('scoreStatus').textContent = online ? 'JSONBin · Live' : TankShotScores.configured ? 'Offline · device scores' : 'Access key needed · local scores only';
+    $('scoreStatus').textContent = scoreWriteStatus || (online ? 'JSONBin · Live' : TankShotScores.configured ? 'Offline · device scores' : 'Access key needed · local scores only');
     const list = scores.slice(0, 10);
     $('scoreBoard').innerHTML = list.length ? '<div class="score-row score-head"><span>#</span><span>Player</span><span>Mission</span><span>Tanks defeated</span></div>' + list.map(function (s, i) {
       return '<div class="score-row"><span>' + (i + 1) + '</span><b>' + String(s.name || 'Guest').replace(/[&<>"']/g, '') + '</b><span>' + Number(s.highestMissionCompleted || s.level || 0) + '</span><span>' + Number(s.totalKills || s.kills || 0).toLocaleString() + '</span></div>';
@@ -889,7 +890,10 @@ function submitRun() {
   const name = (currentProfile || 'Guest').trim().slice(0, 16) || 'Guest';
   TankShotScores.submit({ name, highestMissionCompleted: save.highestMissionCompleted, totalKills: save.totalKills,
     level: save.highestMissionCompleted, shots: runStats.shots, kills: save.totalKills,
-    score: save.totalKills * 100 + save.highestMissionCompleted * 500 });
+    score: save.totalKills * 100 + save.highestMissionCompleted * 500 }, function (result) {
+      scoreWriteStatus = result.ok ? 'JSONBin · Live — score saved' : 'Score save failed: ' + result.error;
+      $('scoreStatus').textContent = scoreWriteStatus;
+    });
 }
 function buyOrEquipAmmo(id) {
   const a = ammoFor(id); if (!AMMO.some(x => x.id === id)) return;
@@ -1661,7 +1665,7 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=25"></script>
+<script src="version-check.js?v=26"></script>
 
 </body></html>
 
