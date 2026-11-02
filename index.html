@@ -60,7 +60,7 @@ body {
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.small { padding: 6px 12px; font-size: 14px; }
 .btn:focus-visible, .step button:focus-visible { outline: 3px solid #8fbcff; outline-offset: 2px; }
-.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=6') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
+.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=7') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; touch-action: none; user-select: none; -webkit-user-select: none; }
 canvas.playing { cursor: none; }
 .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,16,.82); padding: 16px; text-align: center; overflow: auto; }
@@ -105,6 +105,13 @@ canvas.playing { cursor: none; }
 .armory-card .ammo-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #ffd36b; font-weight: 700; }
 .armory-card .btn { width: 100%; }
 .coin-icon { color: #ffd36b; }
+.settings-panel { max-width: 540px; }
+.setting-row { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:14px 4px; border-bottom:1px solid var(--line); font-size:19px; }
+.setting-row select { min-width:150px; padding:8px; color:var(--ink); background:var(--panel-2); border:1px solid var(--line); border-radius:4px; font:inherit; }
+.score-board { display:grid; gap:8px; margin:16px 0; max-height:55vh; overflow:auto; }
+.score-row { display:grid; grid-template-columns:36px minmax(80px,1fr) repeat(3,minmax(70px,auto)); gap:10px; align-items:center; padding:10px; border:1px solid var(--line); border-radius:5px; background:var(--panel-2); font-size:16px; }
+.score-row b { color:var(--accent); }
+.score-head { color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
 .gameUpdateNotice { position: fixed; z-index: 9999; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(360px, calc(100vw - 36px)); box-sizing: border-box; padding: 22px 24px; border: 1px solid rgba(255,182,41,.75); border-radius: 12px; background: rgba(18,14,10,.97); color: var(--ink); box-shadow: 0 12px 44px rgba(0,0,0,.72); font: 14px var(--font-body); text-align: center; }
 .updateTitle { margin-bottom: 16px; color: var(--accent); font-size: 20px; font-weight: 700; }
 .updateTrack { height: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,.16); border-radius: 8px; background: #28231b; }
@@ -124,6 +131,8 @@ canvas.playing { cursor: none; }
   .v { font-size: 19px; }
   .armory-grid { grid-template-columns: 1fr; }
   .armory-card { padding: 10px; }
+  .score-row { grid-template-columns:24px minmax(54px,1fr) repeat(3,minmax(44px,auto)); gap:5px; padding:8px 5px; font-size:13px; }
+  .score-head { font-size:10px; }
 }
 </style>
 
@@ -148,7 +157,7 @@ canvas.playing { cursor: none; }
     <canvas id="cv"></canvas>
 
     <div class="overlay" id="ovTitle">
-      <img class="logo-image" src="assets/tankshot-logo.svg?v=6" alt="TankShot">
+      <img class="logo-image" src="assets/tankshot-logo.svg?v=7" alt="TankShot">
       <p class="tag">One hit ends you. Bounce shots off the blocks, lay mines at the chokepoints and clear every arena.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
@@ -178,8 +187,26 @@ canvas.playing { cursor: none; }
           <div><h2 class="h2">Armory</h2><p class="armory-balance">Wallet <b id="armoryCoins">0</b> coins</p></div>
           <button class="btn small" id="bArmoryBack" type="button">Back</button>
         </header>
-        <p class="armory-note" id="armoryNote">Unlock ammo permanently. Earn coins by destroying enemy tanks and coin crates.</p>
+        <p class="armory-note" id="armoryNote">Unlock each projectile once, permanently. Select it before firing.</p>
         <div class="armory-grid" id="armoryGrid"></div>
+      </section>
+    </div>
+
+    <div class="overlay armory-overlay" id="ovSettings" hidden>
+      <section class="armory-panel settings-panel">
+        <header class="armory-head"><h2 class="h2">Settings</h2><button class="btn small" id="bSettingsBack" type="button">Back</button></header>
+        <div class="setting-row"><label for="setDifficulty">Difficulty</label><select id="setDifficulty"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></div>
+        <div class="setting-row"><label for="setHandling">Tank handling</label><select id="setHandling"><option value="arcade">Arcade</option><option value="precise">Precise</option></select></div>
+        <div class="setting-row"><label for="setShake">Screen shake</label><input id="setShake" type="checkbox"></div>
+        <div class="setting-row"><label for="setParticles">Explosion effects</label><select id="setParticles"><option value="high">High</option><option value="low">Low</option></select></div>
+      </section>
+    </div>
+
+    <div class="overlay armory-overlay" id="ovScores" hidden>
+      <section class="armory-panel scores-panel">
+        <header class="armory-head"><div><h2 class="h2">High Scores</h2><p class="armory-balance" id="scoreStatus">Connecting…</p></div><button class="btn small" id="bScoresBack" type="button">Back</button></header>
+        <div id="scoreBoard" class="score-board"></div>
+        <button class="btn small" id="bScoresRefresh" type="button">Refresh</button>
       </section>
     </div>
 
@@ -495,16 +522,23 @@ function buildCfg(m) {
 const SAVE_KEY = 'tankshot.save.v1';
 const AMMO = [
   { id: 'standard', name: 'Standard Shell', short: 'Shell', cost: 0, speed: 330, bounce: 1, pierce: 0, radius: 0, color: '#fff2b0', desc: 'Reliable shell with one ricochet. Always available.' },
-  { id: 'piercer', name: 'Piercer', short: 'AP', cost: 100, speed: 470, bounce: 0, pierce: 1, radius: 0, color: '#8feaff', desc: 'Fast armor-piercing round that can pass through one tank.' },
-  { id: 'blast', name: 'Blast Shell', short: 'HE', cost: 180, speed: 290, bounce: 0, pierce: 0, radius: 76, color: '#ffb14a', desc: 'Explodes on impact and damages tanks and crates nearby.' },
-  { id: 'demolition', name: 'Demolition Shell', short: 'DEM', cost: 320, speed: 245, bounce: 0, pierce: 0, radius: 118, color: '#ff6848', desc: 'Heavy blast with a larger radius for clearing crowded arenas.' }
+  { id: 'piercer', name: 'Piercer', short: 'AP', cost: 650, speed: 470, bounce: 0, pierce: 1, radius: 0, color: '#8feaff', desc: 'Fast armor-piercing round that can pass through one tank.' },
+  { id: 'blast', name: 'Blast Shell', short: 'HE', cost: 1100, speed: 290, bounce: 0, pierce: 0, radius: 76, color: '#ffb14a', desc: 'Explodes on impact and damages tanks and crates nearby.' },
+  { id: 'demolition', name: 'Demolition Shell', short: 'DEM', cost: 1800, speed: 245, bounce: 0, pierce: 0, radius: 118, color: '#ff6848', desc: 'Heavy blast with a larger radius for clearing crowded arenas.' },
+  { id: 'shrapnel', name: 'Shrapnel Burst', short: 'SHR', cost: 2400, speed: 360, bounce: 0, pierce: 0, radius: 52, color: '#ffd27c', desc: 'A compact blast that scatters a ring of damaging fragments.' },
+  { id: 'cryo', name: 'Cryo Shell', short: 'CRYO', cost: 3200, speed: 410, bounce: 0, pierce: 0, radius: 0, freeze: 2.5, color: '#7cecff', desc: 'Freezes nearby tanks briefly, leaving them open to follow-up shots.' },
+  { id: 'shock', name: 'Shockwave Charge', short: 'ARC', cost: 4600, speed: 280, bounce: 0, pierce: 0, radius: 150, color: '#b38cff', desc: 'A wide electrical blast reaches across clustered enemies.' },
+  { id: 'cluster', name: 'Cluster Bomb', short: 'CLST', cost: 6200, speed: 250, bounce: 0, pierce: 0, radius: 126, color: '#ff795b', desc: 'Heavy shell with a large blast and bonus crate-breaking power.' },
+  { id: 'rail', name: 'Rail Cannon', short: 'RAIL', cost: 8500, speed: 680, bounce: 0, pierce: 99, radius: 0, color: '#8fffd5', desc: 'High-velocity rail round punches through every tank in its path.' }
 ];
-let save = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard' };
+let save = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', settings: { difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' } };
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && typeof s === 'object') save = Object.assign(save, s); } catch (e) {}
 if (!Array.isArray(save.ammoUnlocked)) save.ammoUnlocked = ['standard'];
 if (!save.ammoUnlocked.includes('standard')) save.ammoUnlocked.unshift('standard');
 if (!AMMO.some(a => a.id === save.ammoEquipped && save.ammoUnlocked.includes(a.id))) save.ammoEquipped = 'standard';
 if (!Number.isFinite(save.coins) || save.coins < 0) save.coins = 0;
+save.settings = Object.assign({ difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' }, save.settings || {});
+let runStats = { shots: 0, kills: 0, level: 1 };
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 
 /* ================= audio ================= */
@@ -551,7 +585,7 @@ function tileAt(c, r) { if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return T_F
 
 function mkTank(type, c, r, isPlayer, idx) {
   return {
-    isPlayer, type, idx, x: (c + .5) * TS, y: (r + .5) * TS, r: 12, body: Math.random() * TAU, tur: 0, aim: 0, alive: true,
+    isPlayer, type, idx, x: (c + .5) * TS, y: (r + .5) * TS, r: 12, body: Math.random() * TAU, tur: 0, aim: 0, alive: true, frozen: 0,
     vx: 0, vy: 0, tdist: 0, tread: 0, fireT: isPlayer ? 0 : 1 + Math.random() * 1.5, thinkT: Math.random() * .3,
     mineT: 3 + Math.random() * 4, dodgeT: 0, dodgeH: 0, fleeT: 0, fleeH: 0, heading: Math.random() * TAU, headT: 0,
     strafe: Math.random() < .5 ? 1 : -1, strafeT: 2, shot: false, recoil: 0, stealthA: .16
@@ -630,7 +664,7 @@ function placeCoinCrates() {
 }
 
 /* ================= HUD & overlays ================= */
-const OVS = ['ovTitle', 'ovArmory', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
+const OVS = ['ovTitle', 'ovArmory', 'ovSettings', 'ovScores', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
 function setOv(name) { for (const id of OVS) $(id).hidden = (id !== name); }
 function enemiesLeft() { let n = 0; for (const t of tanks) if (!t.isPlayer && t.alive) n++; return n; }
 function ammoFor(id) { return AMMO.find(a => a.id === id) || AMMO[0]; }
@@ -648,13 +682,37 @@ function renderArmory() {
   $('armoryGrid').innerHTML = AMMO.map(a => {
     const owned = save.ammoUnlocked.includes(a.id), equipped = save.ammoEquipped === a.id;
     const action = owned ? (equipped ? 'Equipped' : 'Equip') : 'Unlock';
-    const cost = a.cost ? '<span class="coin-icon">' + a.cost + ' coins</span>' : '<span>Free</span>';
+    const cost = a.cost ? '<span class="coin-icon">' + a.cost.toLocaleString() + ' coins · permanent</span>' : '<span>Free</span>';
     return '<article class="armory-card' + (equipped ? ' selected' : '') + '">' +
       '<h3>' + a.name + '</h3><p>' + a.desc + '</p><div class="ammo-meta">' + cost + '<span>' + (equipped ? 'Selected' : owned ? 'Owned' : '') + '</span></div>' +
       '<button class="btn ' + (equipped ? 'primary' : '') + ' small" type="button" data-ammo="' + a.id + '">' + action + '</button></article>';
   }).join('');
 }
 function openArmory() { renderArmory(); setOv('ovArmory'); }
+function openSettings() {
+  $('setDifficulty').value = save.settings.difficulty; $('setHandling').value = save.settings.handling;
+  $('setShake').checked = !!save.settings.shake; $('setParticles').value = save.settings.particles;
+  setOv('ovSettings');
+}
+function saveSetting(key, value) { save.settings[key] = value; persist(); }
+function renderScores() {
+  $('scoreStatus').textContent = 'Loading leaderboard…';
+  $('scoreBoard').innerHTML = '';
+  if (!window.TankShotScores) { $('scoreStatus').textContent = 'Offline scores'; return; }
+  TankShotScores.fetch(function (scores, online) {
+    $('scoreStatus').textContent = online ? 'JSONBin · Live' : 'Offline · device scores';
+    const list = scores.slice(0, 10);
+    $('scoreBoard').innerHTML = list.length ? '<div class="score-row score-head"><span>#</span><span>Player</span><span>Level</span><span>Shots</span><span>Defeats</span></div>' + list.map(function (s, i) {
+      return '<div class="score-row"><span>' + (i + 1) + '</span><b>' + String(s.name || 'Guest').replace(/[&<>"']/g, '') + '</b><span>' + Number(s.level || 1) + '</span><span>' + Number(s.shots || 0).toLocaleString() + '</span><span>' + Number(s.kills || 0).toLocaleString() + '</span></div>';
+    }).join('') : '<p class="armory-note">No completed runs yet. Be the first on the board.</p>';
+  });
+}
+function submitRun() {
+  if (!window.TankShotScores) return;
+  const name = (localStorage.getItem('tankshot.playerName') || window.prompt('Name for the high score board?') || 'Guest').trim().slice(0, 16) || 'Guest';
+  try { localStorage.setItem('tankshot.playerName', name); } catch (e) {}
+  TankShotScores.submit({ name, level: runStats.level, shots: runStats.shots, kills: runStats.kills, score: runStats.kills * 100 + runStats.level * 500 - runStats.shots });
+}
 function buyOrEquipAmmo(id) {
   const a = ammoFor(id); if (!AMMO.some(x => x.id === id)) return;
   if (!save.ammoUnlocked.includes(id)) {
@@ -688,6 +746,7 @@ function showTitle() {
   $('stVal').textContent = startM;
   $('armoryNote').textContent = 'Unlock ammo permanently. Earn coins by destroying enemy tanks and coin crates.';
   updHud();
+  $('titleRunStats').textContent = 'Best run: Level ' + (save.bestLevel || 1) + ' · ' + (save.bestKills || 0) + ' tanks defeated';
   window.dispatchEvent(new Event('tankshot-title-screen'));
 }
 let startM = 1;
@@ -700,11 +759,12 @@ function cycleAmmo() {
 }
 
 function startSession(m) {
+  runStats = { shots: 0, kills: 0, level: m };
   SEED = (Math.random() * 1e9) | 0;
   G.lives = 3; G.note = ''; enterMission(m);
 }
 function enterMission(m) {
-  G.mission = m; cfg = buildCfg(m);
+  G.mission = m; runStats.level = Math.max(runStats.level, m); cfg = buildCfg(m);
   if (m > save.max) { save.max = m; persist(); }
   resetArena(); beginBrief(false);
 }
@@ -726,7 +786,7 @@ function playerDown() { G.state = 'dead'; G.timer = 1.9; cv.classList.remove('pl
 function afterDeath() {
   if (G.lives <= 1) {
     G.lives = 0; updHud(); G.state = 'over';
-    $('ovOverText').textContent = 'Your tank was destroyed on mission ' + G.mission + '. Start again from the title screen.';
+    $('ovOverText').textContent = 'Your tank was destroyed on mission ' + G.mission + '. Start again from the title screen.'; runStats.level = Math.max(runStats.level, G.mission); save.bestLevel = Math.max(save.bestLevel || 1, runStats.level); persist(); submitRun();
     setOv('ovOver');
   } else { G.lives--; resetArena(); beginBrief(true); }
 }
@@ -739,7 +799,7 @@ function completeMission() {
   else if (m === 20 && !save.gold) { save.gold = 1; save.unlocked = 1; save.max = Math.max(save.max, 21); ev = 'gold'; end = true; }
   if (m > 30) { save.plat++; G.note = (G.note ? G.note + '. ' : '') + 'Platinum medal earned'; }
   persist(); updHud();
-  if (m >= 100) { G.state = 'win'; setOv('ovWin'); return; }
+  if (m >= 100) { G.state = 'win'; save.bestLevel = 100; persist(); submitRun(); setOv('ovWin'); return; }
   if (ev) { showMedal(ev, m, end); return; }
   enterMission(m + 1);
 }
@@ -796,9 +856,10 @@ function bulletsOf(t) { let n = 0; for (const b of bullets) if (b.own === t) n++
 function fire(t, ang, spd, bounce, ammoId) {
   const ammo = t.isPlayer ? ammoFor(ammoId || save.ammoEquipped) : null;
   if (ammo) { spd = ammo.speed; bounce = ammo.bounce; }
+  if (t.isPlayer) runStats.shots++;
   const d = t.r + 6; let x = t.x + Math.cos(ang) * d, y = t.y + Math.sin(ang) * d;
   if (bulletSolid(tileAt(Math.floor(x / TS), Math.floor(y / TS)))) { x = t.x; y = t.y; }
-  bullets.push({ x, y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, b: bounce, own: t, age: 0, fast: spd > 300, ammo: ammo ? ammo.id : 'standard', pierce: ammo ? ammo.pierce : 0, explosive: ammo ? ammo.radius : 0, color: ammo ? ammo.color : '#fff2b0' });
+  bullets.push({ x, y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, b: bounce, own: t, age: 0, fast: spd > 300, ammo: ammo ? ammo.id : 'standard', pierce: ammo ? ammo.pierce : 0, explosive: ammo ? ammo.radius : 0, freeze: ammo ? ammo.freeze || 0 : 0, color: ammo ? ammo.color : '#fff2b0' });
   t.recoil = 1; if (t.type && TYPES[t.type] && TYPES[t.type].stealth) t.stealthA = .7;
   burst(x, y, 4, ['#fff2b0', '#ffd36b'], 60, .18, 2.2);
   sfx('shot');
@@ -815,7 +876,7 @@ function killTank(t) {
   t.alive = false;
   burst(t.x, t.y, 26, ['#ffcf5a', '#ff8a3c', '#3a3a3a', '#d9d9d9'], 190, .8, 4);
   scorch(t.x, t.y, 24, .55); sfx('pop'); G.shake = Math.max(G.shake, 6);
-  if (t.isPlayer) playerDown(); else { cfg.dead.add(t.idx); gainCoins(25, t.x, t.y); }
+  if (t.isPlayer) playerDown(); else { cfg.dead.add(t.idx); if (G.state === 'play') { runStats.kills++; save.bestKills = Math.max(save.bestKills || 0, runStats.kills); persist(); } gainCoins(25, t.x, t.y); }
   updHud();
 }
 function openCoinCrate(c, r, owner) {
@@ -829,8 +890,8 @@ function openCoinCrate(c, r, owner) {
 }
 function boom(x, y, radius) {
   radius = radius || BR;
-  booms.push({ x, y, t: 0, rad: radius }); G.shake = Math.max(G.shake, 12); sfx('boom');
-  burst(x, y, 40, ['#ffcf5a', '#ff7a2e', '#444', '#bbb'], 260, .9, 5);
+  booms.push({ x, y, t: 0, rad: radius }); if (save.settings.shake) G.shake = Math.max(G.shake, 12); sfx('boom');
+  burst(x, y, save.settings.particles === 'low' ? 16 : 40, ['#ffcf5a', '#ff7a2e', '#444', '#bbb'], 260, .9, 5);
   scorch(x, y, radius * .7, .5);
   for (const t of tanks) if (t.alive && Math.hypot(t.x - x, t.y - y) < radius + 4) killTank(t);
   let changed = false;
@@ -848,6 +909,14 @@ function boom(x, y, radius) {
   if (changed) drawFloor();
   bullets = bullets.filter(b => Math.hypot(b.x - x, b.y - y) >= radius);
   for (const m of mines) if (m.fuse === null && Math.hypot(m.x - x, m.y - y) < radius) m.fuse = .12 + Math.random() * .08;
+}
+function projectileImpact(x, y, b) {
+  boom(x, y, b.explosive);
+  if (b.ammo !== 'shrapnel') return;
+  for (let i = 0; i < 8; i++) {
+    const a = i * TAU / 8;
+    bullets.push({ x, y, vx: Math.cos(a) * 300, vy: Math.sin(a) * 300, b: 0, own: b.own, age: 0, fast: true, ammo: 'fragment', pierce: 0, explosive: 0, freeze: 0, color: '#ffd27c' });
+  }
 }
 function explodeMine(m) { const i = mines.indexOf(m); if (i >= 0) mines.splice(i, 1); boom(m.x, m.y); }
 
@@ -940,9 +1009,9 @@ function updatePlayer(p, dt) {
   const ox = p.x, oy = p.y;
   if (len > .15) {
     ix /= len; iy /= len;
-    const target = Math.atan2(iy, ix), step = PL.turn * dt;
+    const handling = save.settings.handling === 'precise' ? .82 : 1;
     p.body += clamp(angDiff(target, p.body), -step, step);
-    const ad = Math.abs(angDiff(target, p.body)), sp = PL.spd * (ad < 1.2 ? 1 : .55) * Math.min(1, len);
+    const ad = Math.abs(angDiff(target, p.body)), sp = PL.spd * handling * (ad < 1.2 ? 1 : .55) * Math.min(1, len);
     const moved = moveTank(p, ix * sp * dt, iy * sp * dt);
     if (moved > 0) stamp(p, moved);
   }
@@ -953,14 +1022,16 @@ function updatePlayer(p, dt) {
 }
 function updateEnemy(e, dt) {
   const c = TYPES[e.type], p = player;
-  e.fireT -= dt; e.thinkT -= dt; e.mineT -= dt; e.dodgeT -= dt; e.fleeT -= dt; e.headT -= dt; e.strafeT -= dt;
+  if (e.frozen > 0) { e.frozen = Math.max(0, e.frozen - dt); return; }
   e.recoil = Math.max(0, e.recoil - dt * 6); e.stealthA += (.16 - e.stealthA) * Math.min(1, dt * 2.2);
   if (e.thinkT <= 0) { e.thinkT = .22 + Math.random() * .1; think(e); }
-  const step = c.turn * 1.4 * dt;
+  const diff = save.settings.difficulty === 'hard' ? 1.25 : save.settings.difficulty === 'easy' ? .78 : 1;
+  e.fireT -= dt; e.thinkT -= dt; e.mineT -= dt; e.dodgeT -= dt; e.fleeT -= dt; e.headT -= dt; e.strafeT -= dt;
+  const step = c.turn * 1.4 * diff * dt;
   e.tur += clamp(angDiff(e.aim, e.tur), -step, step);
   if (p.alive && e.shot && e.fireT <= 0 && Math.abs(angDiff(e.aim, e.tur)) < c.tol && bulletsOf(e) < c.mb) {
     fire(e, e.tur + (Math.random() - .5) * 2 * c.err, c.bs, c.b);
-    e.fireT = c.cd * (.8 + Math.random() * .5);
+    e.fireT = c.cd / diff * (.8 + Math.random() * .5);
   }
   if (c.mv === 'static') return;
   if (c.mines && e.mineT <= 0) {
@@ -999,7 +1070,7 @@ function updateBullets(dt) {
           { t: tileAt(Math.floor(b.x / TS), Math.floor(ny / TS)), c: Math.floor(b.x / TS), r: Math.floor(ny / TS) }
         ].find(q => bulletSolid(q.t));
         const hitTile = hit && hit.t;
-        if (b.explosive) { dead = true; boom(b.x, b.y, b.explosive); break; }
+        if (b.explosive) { dead = true; projectileImpact(b.x, b.y, b); break; }
         if (hitTile === T_COIN) { dead = true; openCoinCrate(hit.c, hit.r, b.own); break; }
         if (b.b <= 0) { dead = true; burst(b.x, b.y, 5, ['#fff2b0', '#d8c9a3'], 90, .25, 2); break; }
         b.b--; if (sx) b.vx = -b.vx; if (sy) b.vy = -b.vy; if (!sx && !sy) { b.vx = -b.vx; b.vy = -b.vy; }
@@ -1009,8 +1080,8 @@ function updateBullets(dt) {
       for (const t of tanks) {
         if (!t.alive) continue;
         if (Math.hypot(t.x - b.x, t.y - b.y) < t.r + 3) {
-          if (b.explosive) { dead = true; boom(t.x, t.y, b.explosive); break; }
-          killTank(t);
+          if (b.explosive) { dead = true; projectileImpact(t.x, t.y, b); break; }
+          if (b.freeze > 0 && !t.isPlayer) { t.frozen = Math.max(t.frozen || 0, b.freeze); burst(t.x, t.y, 16, ['#7cecff', '#d8fbff'], 100, .4, 3); dead = true; break; }
           if (b.pierce > 0) { b.pierce--; burst(b.x, b.y, 7, [b.color, '#fff'], 90, .3, 2.5); }
           else { dead = true; break; }
         }
@@ -1264,6 +1335,15 @@ $('bResume').addEventListener('click', () => togglePause());
 $('bQuit').addEventListener('click', () => { cfg = null; tanks = []; grid = null; showTitle(); });
 $('bPlay').addEventListener('click', () => { actx(); startSession(startM); });
 $('bArmory').addEventListener('click', openArmory);
+$('bSettings').addEventListener('click', openSettings);
+$('bScores').addEventListener('click', () => { renderScores(); setOv('ovScores'); });
+$('bSettingsBack').addEventListener('click', showTitle);
+$('bScoresBack').addEventListener('click', showTitle);
+$('bScoresRefresh').addEventListener('click', renderScores);
+$('setDifficulty').addEventListener('change', e => saveSetting('difficulty', e.target.value));
+$('setHandling').addEventListener('change', e => saveSetting('handling', e.target.value));
+$('setShake').addEventListener('change', e => saveSetting('shake', e.target.checked));
+$('setParticles').addEventListener('change', e => saveSetting('particles', e.target.value));
 $('bArmoryBack').addEventListener('click', showTitle);
 $('armoryGrid').addEventListener('click', e => { const b = e.target.closest('[data-ammo]'); if (b) buyOrEquipAmmo(b.dataset.ammo); });
 $('stDec').addEventListener('click', () => { startM = Math.max(1, startM - 1); $('stVal').textContent = startM; });
@@ -1288,7 +1368,8 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=6"></script>
+<script src="leaderboard.js?v=7"></script>
+<script src="version-check.js?v=7"></script>
 
 </body></html>
 
