@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var CURRENT_VERSION = '22';
+  var CURRENT_VERSION = '23';
   var UPDATE_ATTEMPT_KEY = 'tankshot.updateAttempt';
   var latestVersion = '';
   var checkInProgress = false;
