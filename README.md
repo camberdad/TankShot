@@ -2,40 +2,16 @@
 
 TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 
-## Latest update — V6
+## Latest update — V7
 
-- Automatically checks `version.json` every 30 seconds, following the CastleRangers update flow.
-- Shows an update-ready notice during play and installs the update automatically at the title screen.
-- Refreshes with a cache-busted version URL and progress notice.
-- Includes persistent coins, coin crates, an Armory, and unlockable ammo types from V5.
+- Adds six alternate projectiles to the Armory with permanent one-time unlocks and increased coin costs.
+- Adds shrapnel fragments, cryo freeze, wide shockwave and cluster blasts, and rail rounds.
+- Adds Settings for difficulty, tank handling, screen shake, and explosion particle density.
+- Adds a High Scores screen with best level reached, shots fired, and tanks defeated.
+- Stores scores locally on every device and supports shared JSONBin leaderboards using the CastleRangersV35 pattern.
 
-## Play locally
+### Connect a dedicated JSONBin
 
-Open `index.html` in a modern browser. No build step or package installation is required. The automatic version check runs on the hosted site; browsers restrict local-file requests.
+Create a new private JSONBin bin containing `{"scores":[]}`. In `leaderboard.js`, set `BIN_ID` to that new bin ID and `MASTER_KEY` to your JSONBin API master key. Use a dedicated bin for TankShot so neither game can overwrite the other's leaderboard. Until those two values are added, the High Scores screen uses its local device board.
 
-## Play online
-
-https://camberdad.github.io/TankShot/
-
-## Embed on a website
-
-TankShot uses the same centered 16:9 viewport sizing as CastleRangers V35:
-
-```html
-<iframe
-  src="https://camberdad.github.io/TankShot/"
-  title="TankShot"
-  width="1280"
-  height="720"
-  style="width:100%; height:auto; aspect-ratio:16 / 9; border:0; display:block;"
-  allow="fullscreen"
-</iframe>
-```
-
-## Controls
-
-- Move with **WASD** or **arrow keys**.
-- Aim with the mouse; click or press **Space** to fire.
-- Press **Q** to cycle unlocked ammo.
-- Use **E**, **Shift**, or right click to place a mine.
-- Press **P** or **Esc** to pause.
+The game retains automatic update checks through `version.json` and safe title-screen installation. Host the repository with GitHub Pages and embed its `index.html` page in your site.
