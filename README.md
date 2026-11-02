@@ -2,10 +2,12 @@
 
 TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 
-## Latest update — V15
+## Latest update — V16
 
-- Temporarily removes the High Scores menu and leaderboard submissions while the server-side JSONBin relay is being set up.
-- Keeps the HUD mission and defeated-tank lifetime counters.
-- Fixes movement and projectile damage regressions and runs simulation at a fixed 60 Hz.
+- Adds CastleRangers-style local player profiles with name selection and separate mission progress, coins, settings, and ammo unlocks on this device.
+- Deploy defaults to each profile's highest completed mission.
+- Adds three elite tank classes. Defeating each for the first time unlocks a special ammo type.
+- Adds desert, jungle, ice, volcanic, and steel arena palettes, themed obstacles, stronger blast effects, and distinct elite tank details.
+- High Scores and remote score submission remain temporarily removed while a secure JSONBin relay is unavailable.
 
 Host the repository with GitHub Pages and embed its `index.html` page in your site.
