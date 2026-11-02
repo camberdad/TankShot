@@ -60,7 +60,7 @@ body {
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.small { padding: 6px 12px; font-size: 14px; }
 .btn:focus-visible, .step button:focus-visible { outline: 3px solid #8fbcff; outline-offset: 2px; }
-.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=9') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
+.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=10') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; touch-action: none; user-select: none; -webkit-user-select: none; }
 canvas.playing { cursor: none; }
 .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,16,.82); padding: 16px; text-align: center; overflow: auto; }
@@ -157,11 +157,13 @@ canvas.playing { cursor: none; }
     <canvas id="cv"></canvas>
 
     <div class="overlay" id="ovTitle">
-      <img class="logo-image" src="assets/tankshot-logo.svg?v=9" alt="TankShot">
+      <img class="logo-image" src="assets/tankshot-logo.svg?v=10" alt="TankShot">
       <p class="tag">One hit ends you. Bounce shots off the blocks, lay mines at the chokepoints and clear every arena.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
         <button class="btn" id="bArmory" type="button">Armory</button>
+        <button class="btn" id="bSettings" type="button">Settings</button>
+        <button class="btn" id="bScores" type="button">High Scores</button>
         <div class="step" id="stepWrap" hidden>
           <span>Start at mission</span>
           <button id="stDec" type="button" aria-label="Earlier mission">&lsaquo;</button>
@@ -179,6 +181,7 @@ canvas.playing { cursor: none; }
         <li><b>Sound</b>M</li>
       </ul>
       <div class="shelf" id="shelf"></div>
+      <div class="hint" id="titleRunStats"></div>
     </div>
 
     <div class="overlay armory-overlay" id="ovArmory" hidden>
@@ -1292,7 +1295,7 @@ cv.addEventListener('pointermove', e => { const w = toWorld(e); aim.x = w.x; aim
 cv.addEventListener('pointerdown', e => {
   const w = toWorld(e); aim.x = w.x; aim.y = w.y; aimSeen = true;
   actx();
-  if (G.state === 'brief' && G.timer < 2.1) { G.timer = 0; return; }
+  if (G.state === 'brief') { G.timer = 0; return; }
   if (e.button === 2) { playerMine(); return; }
   mouseDown = true;
   try { cv.setPointerCapture(e.pointerId); } catch (err) {}
@@ -1300,7 +1303,7 @@ cv.addEventListener('pointerdown', e => {
 const up = () => { mouseDown = false; };
 cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 cv.addEventListener('contextmenu', e => e.preventDefault());
-$('ovBrief').addEventListener('pointerdown', () => { if (G.state === 'brief' && G.timer < 2.1) G.timer = 0; });
+$('ovBrief').addEventListener('pointerdown', () => { if (G.state === 'brief') G.timer = 0; });
 window.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code.indexOf('Arrow') === 0) { if (G.state === 'play' || G.state === 'brief') e.preventDefault(); }
   if (e.repeat) { keys[e.code] = true; return; }
@@ -1309,7 +1312,7 @@ window.addEventListener('keydown', e => {
   else if (e.code === 'KeyE' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') playerMine();
   else if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   else if (e.code === 'KeyM') toggleMute();
-  else if ((e.code === 'Enter' || e.code === 'Space') && G.state === 'brief' && G.timer < 2.1) G.timer = 0;
+  else if ((e.code === 'Enter' || e.code === 'Space') && G.state === 'brief') G.timer = 0;
   if (G.state === 'play' || G.state === 'brief') actx();
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
@@ -1335,15 +1338,15 @@ $('bResume').addEventListener('click', () => togglePause());
 $('bQuit').addEventListener('click', () => { cfg = null; tanks = []; grid = null; showTitle(); });
 $('bPlay').addEventListener('click', () => { actx(); startSession(startM); });
 $('bArmory').addEventListener('click', openArmory);
-$('bSettings').addEventListener('click', openSettings);
-$('bScores').addEventListener('click', () => { renderScores(); setOv('ovScores'); });
-$('bSettingsBack').addEventListener('click', showTitle);
-$('bScoresBack').addEventListener('click', showTitle);
-$('bScoresRefresh').addEventListener('click', renderScores);
-$('setDifficulty').addEventListener('change', e => saveSetting('difficulty', e.target.value));
-$('setHandling').addEventListener('change', e => saveSetting('handling', e.target.value));
-$('setShake').addEventListener('change', e => saveSetting('shake', e.target.checked));
-$('setParticles').addEventListener('change', e => saveSetting('particles', e.target.value));
+$('bSettings')?.addEventListener('click', openSettings);
+$('bScores')?.addEventListener('click', () => { renderScores(); setOv('ovScores'); });
+$('bSettingsBack')?.addEventListener('click', showTitle);
+$('bScoresBack')?.addEventListener('click', showTitle);
+$('bScoresRefresh')?.addEventListener('click', renderScores);
+$('setDifficulty')?.addEventListener('change', e => saveSetting('difficulty', e.target.value));
+$('setHandling')?.addEventListener('change', e => saveSetting('handling', e.target.value));
+$('setShake')?.addEventListener('change', e => saveSetting('shake', e.target.checked));
+$('setParticles')?.addEventListener('change', e => saveSetting('particles', e.target.value));
 $('bArmoryBack').addEventListener('click', showTitle);
 $('armoryGrid').addEventListener('click', e => { const b = e.target.closest('[data-ammo]'); if (b) buyOrEquipAmmo(b.dataset.ammo); });
 $('stDec').addEventListener('click', () => { startM = Math.max(1, startM - 1); $('stVal').textContent = startM; });
@@ -1368,9 +1371,9 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="leaderboard-config.js?v=9"></script>
-<script src="leaderboard.js?v=9"></script>
-<script src="version-check.js?v=9"></script>
+<script src="leaderboard-config.js?v=10"></script>
+<script src="leaderboard.js?v=10"></script>
+<script src="version-check.js?v=10"></script>
 
 </body></html>
 
