@@ -4,7 +4,7 @@ TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 
 ## Latest update — V7
 
-- Adds six alternate projectiles to the Armory with permanent one-time unlocks and increased coin costs.
+- Adds five new projectiles (eight alternate types total) to the Armory with permanent one-time unlocks and increased coin costs.
 - Adds shrapnel fragments, cryo freeze, wide shockwave and cluster blasts, and rail rounds.
 - Adds Settings for difficulty, tank handling, screen shake, and explosion particle density.
 - Adds a High Scores screen with best level reached, shots fired, and tanks defeated.
