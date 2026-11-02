@@ -187,7 +187,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 28">V28</span>
+      <span class="version-badge" title="Game version 29">V29</span>
     </div>
   </header>
 
@@ -281,11 +281,20 @@ canvas.playing { cursor: none; }
       </div>
     </div>
 
+    <div class="overlay" id="ovClear" hidden>
+      <h2 class="h2">Round complete</h2>
+      <p class="tag" id="clearText"></p>
+      <div class="row">
+        <button class="btn primary" id="bClearContinue" type="button">Continue</button>
+        <button class="btn" id="bClearMenu" type="button">Back to main menu</button>
+      </div>
+    </div>
+
     <div class="overlay" id="ovMedal" hidden>
       <div class="medalart" id="mdArt"></div>
       <h2 class="h2" id="mdTitle">Medal</h2>
       <p class="tag" id="mdText"></p>
-      <button class="btn primary" id="bMedalGo" type="button">Continue</button>
+      <div class="row"><button class="btn primary" id="bMedalGo" type="button">Continue</button><button class="btn" id="bMedalMenu" type="button">Back to main menu</button></div>
     </div>
 
     <div class="overlay" id="ovOver" hidden>
@@ -308,8 +317,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=28"></script>
-<script src="leaderboard.js?v=28"></script>
+<script src="leaderboard-config.js?v=29"></script>
+<script src="leaderboard.js?v=29"></script>
 <script>
 (function () {
 'use strict';
@@ -790,7 +799,7 @@ function placeCoinCrates() {
 }
 
 /* ================= HUD & overlays ================= */
-const OVS = ['ovTitle', 'ovProfiles', 'ovArmory', 'ovSettings', 'ovScores', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
+const OVS = ['ovTitle', 'ovProfiles', 'ovArmory', 'ovSettings', 'ovScores', 'ovBrief', 'ovPause', 'ovClear', 'ovOver', 'ovMedal', 'ovWin'];
 function setOv(name) { for (const id of OVS) $(id).hidden = (id !== name); }
 function enemiesLeft() { let n = 0; for (const t of tanks) if (!t.isPlayer && t.alive) n++; return n; }
 function ammoFor(id) { return AMMO.find(a => a.id === id) || AMMO[0]; }
@@ -1067,7 +1076,9 @@ function completeMission() {
   persist(); updHud(); submitRun();
   if (m >= 100) { G.state = 'win'; save.bestLevel = 100; persist(); setOv('ovWin'); return; }
   if (ev) { showMedal(ev, m, end); return; }
-  enterMission(m + 1);
+  G.state = 'cleared'; G.afterMission = m + 1;
+  $('clearText').textContent = 'Mission ' + m + ' cleared. Continue when you are ready, or return to the main menu.';
+  setOv('ovClear');
 }
 function showMedal(ev, m, end) {
   G.state = 'medal'; G.after = end ? 'title' : 'next'; G.afterMission = m + 1;
@@ -1647,6 +1658,9 @@ $('bSettingsBack')?.addEventListener('click', showTitle);
 $('bScores')?.addEventListener('click', () => { renderScores(); setOv('ovScores'); });
 $('bScoresBack')?.addEventListener('click', showTitle);
 $('bScoresRefresh')?.addEventListener('click', renderScores);
+$('bClearContinue')?.addEventListener('click', () => enterMission(G.afterMission));
+$('bClearMenu')?.addEventListener('click', () => { cfg = null; tanks = []; grid = null; showTitle(); });
+$('bMedalMenu')?.addEventListener('click', () => { cfg = null; tanks = []; grid = null; showTitle(); });
 $('setFps')?.addEventListener('change', e => saveSetting('fps', e.target.value));
 $('setDifficulty')?.addEventListener('change', e => saveSetting('difficulty', e.target.value));
 $('setHandling')?.addEventListener('change', e => saveSetting('handling', e.target.value));
@@ -1690,7 +1704,7 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=28"></script>
+<script src="version-check.js?v=29"></script>
 
 </body></html>
 
