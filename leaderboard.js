@@ -20,6 +20,14 @@
   }
   function cached() { try { var x = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{"scores":[]}'); return Array.isArray(x.scores) ? x.scores : []; } catch (e) { return []; } }
   function saveLocal(rows) { try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ scores: rows })); } catch (e) {} }
+  function checkResponse(response) {
+    if (response.ok) return response;
+    return response.text().then(function (body) {
+      var message = '';
+      try { var parsed = JSON.parse(body); message = parsed.message || ''; } catch (e) {}
+      throw new Error('JSONBin HTTP ' + response.status + (message ? ': ' + message : ''));
+    });
+  }
   function rank(rows) {
     var best = Object.create(null);
     rows.map(clean).forEach(function (r) {
@@ -37,12 +45,12 @@
   }
   function readRemote() {
     if (!BIN_ID || !ACCESS_KEY) return Promise.reject(new Error('JSONBin X-Access-Key is not configured'));
-    return fetch(URL + '/latest', { headers: headers, cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+    return fetch(URL + '/latest', { headers: headers, cache: 'no-store' }).then(checkResponse).then(function (r) { return r.json(); })
       .then(function (d) { var record = d && d.record; return Array.isArray(record) ? { record: record, scores: record } : { record: record || {}, scores: record && Array.isArray(record.scores) ? record.scores : [] }; });
   }
   function fetchScores(cb) {
     var local = rank(cached());
-    readRemote().then(function (data) { var gameRows = rank(data.scores.concat(local)); saveLocal(gameRows); cb(gameRows, true); })
+    readRemote().then(function (data) { var gameRows = rank(data.scores); saveLocal(gameRows); cb(gameRows, true); })
       .catch(function () { cb(local, false); });
   }
   function checkUsername(name, cb) {
@@ -53,12 +61,17 @@
       cb({ available: !taken, online: true });
     }).catch(function () { cb({ available: false, online: false }); });
   }
-  function submit(entry) {
+  var submitQueue = Promise.resolve();
+  function submit(entry, cb) {
     var row = clean(entry), local = rank(cached().concat([row])); saveLocal(local);
-    readRemote().then(function (data) {
-      var merged = rank(data.scores.concat([row]));
-      return fetch(URL, { method: 'PUT', headers: headers, body: JSON.stringify({ scores: merged }) }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); saveLocal(merged); });
-    }).catch(function () {});
+    submitQueue = submitQueue.then(function () {
+      return readRemote().then(function (data) {
+        var merged = rank(data.scores.concat([row]));
+        return fetch(URL, { method: 'PUT', headers: headers, body: JSON.stringify({ scores: merged }) })
+          .then(checkResponse).then(function () { saveLocal(merged); return { ok: true }; });
+      });
+    }).catch(function (error) { return { ok: false, error: error && error.message || 'Unknown JSONBin error' }; });
+    if (typeof cb === 'function') submitQueue.then(cb);
   }
   window.TankShotScores = { fetch: fetchScores, submit: submit, checkUsername: checkUsername, configured: !!(BIN_ID && ACCESS_KEY) };
 })();
