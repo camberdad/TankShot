@@ -60,7 +60,7 @@ body {
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.small { padding: 6px 12px; font-size: 14px; }
 .btn:focus-visible, .step button:focus-visible { outline: 3px solid #8fbcff; outline-offset: 2px; }
-.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=12') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
+.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=14') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; touch-action: none; user-select: none; -webkit-user-select: none; }
 canvas.playing { cursor: none; }
 .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,16,.82); padding: 16px; text-align: center; overflow: auto; }
@@ -151,7 +151,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 12">V12</span>
+      <span class="version-badge" title="Game version 14">V14</span>
     </div>
   </header>
 
@@ -159,7 +159,7 @@ canvas.playing { cursor: none; }
     <canvas id="cv"></canvas>
 
     <div class="overlay" id="ovTitle">
-      <img class="logo-image" src="assets/tankshot-logo.svg?v=12" alt="TankShot">
+      <img class="logo-image" src="assets/tankshot-logo.svg?v=14" alt="TankShot">
       <p class="tag">One hit ends you. Bounce shots off the blocks, lay mines at the chokepoints and clear every arena.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
@@ -192,7 +192,7 @@ canvas.playing { cursor: none; }
           <div><h2 class="h2">Armory</h2><p class="armory-balance">Wallet <b id="armoryCoins">0</b> coins</p></div>
           <button class="btn small" id="bArmoryBack" type="button">Back</button>
         </header>
-        <p class="armory-note" id="armoryNote">Unlock each projectile once, permanently. Select it before firing.</p>
+        <p class="armory-note" id="armoryNote">Unlock each projectile once, then select it before firing.</p>
         <div class="armory-grid" id="armoryGrid"></div>
       </section>
     </div>
@@ -691,7 +691,7 @@ function renderArmory() {
   $('armoryGrid').innerHTML = AMMO.map(a => {
     const owned = save.ammoUnlocked.includes(a.id), equipped = save.ammoEquipped === a.id;
     const action = owned ? (equipped ? 'Equipped' : 'Equip') : 'Unlock';
-    const cost = a.cost ? '<span class="coin-icon">' + a.cost.toLocaleString() + ' coins · permanent</span>' : '<span>Free</span>';
+    const cost = a.cost ? '<span class="coin-icon">' + a.cost.toLocaleString() + ' coins · unlock once</span>' : '<span>Free</span>';
     return '<article class="armory-card' + (equipped ? ' selected' : '') + '">' +
       '<h3>' + a.name + '</h3><p>' + a.desc + '</p><div class="ammo-meta">' + cost + '<span>' + (equipped ? 'Selected' : owned ? 'Owned' : '') + '</span></div>' +
       '<button class="btn ' + (equipped ? 'primary' : '') + ' small" type="button" data-ammo="' + a.id + '">' + action + '</button></article>';
@@ -755,7 +755,7 @@ function showTitle() {
   $('stepWrap').hidden = top <= 1;
   if (startM > top) startM = top;
   $('stVal').textContent = startM;
-  $('armoryNote').textContent = 'Unlock ammo permanently. Earn coins by destroying enemy tanks and coin crates.';
+  $('armoryNote').textContent = 'Unlock ammo with coins. Earn coins by destroying enemy tanks and coin crates.';
   updHud();
   $('titleRunStats').textContent = 'Best run: Level ' + (save.bestLevel || 1) + ' · ' + (save.bestKills || 0) + ' tanks defeated';
   window.dispatchEvent(new Event('tankshot-title-screen'));
@@ -1021,6 +1021,7 @@ function updatePlayer(p, dt) {
   const ox = p.x, oy = p.y;
   if (len > .15) {
     ix /= len; iy /= len;
+    const target = Math.atan2(iy, ix), step = PL.turn * dt;
     const handling = save.settings.handling === 'precise' ? .82 : 1;
     p.body += clamp(angDiff(target, p.body), -step, step);
     const ad = Math.abs(angDiff(target, p.body)), sp = PL.spd * handling * (ad < 1.2 ? 1 : .55) * Math.min(1, len);
@@ -1090,10 +1091,11 @@ function updateBullets(dt) {
       }
       b.x = nx; b.y = ny;
       for (const t of tanks) {
-        if (!t.alive) continue;
+        if (!t.alive || t === b.own) continue;
         if (Math.hypot(t.x - b.x, t.y - b.y) < t.r + 3) {
           if (b.explosive) { dead = true; projectileImpact(t.x, t.y, b); break; }
           if (b.freeze > 0 && !t.isPlayer) { t.frozen = Math.max(t.frozen || 0, b.freeze); burst(t.x, t.y, 16, ['#7cecff', '#d8fbff'], 100, .4, 3); dead = true; break; }
+          killTank(t);
           if (b.pierce > 0) { b.pierce--; burst(b.x, b.y, 7, [b.color, '#fff'], 90, .3, 2.5); }
           else { dead = true; break; }
         }
@@ -1373,9 +1375,9 @@ $('bMedalGo').addEventListener('click', () => {
 });
 
 /* ================= main loop ================= */
-const SIM_STEP = 1 / 120;
+const SIM_STEP = 1 / 60;
 const MAX_FRAME_DELTA = .1;
-const MAX_SIM_STEPS = 12;
+const MAX_SIM_STEPS = 6;
 let last = 0, lastRender = 0, accumulator = 0;
 function frame(ts) {
   window.requestAnimationFrame(frame);
@@ -1400,9 +1402,9 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="leaderboard-config.js?v=12"></script>
-<script src="leaderboard.js?v=12"></script>
-<script src="version-check.js?v=12"></script>
+<script src="leaderboard-config.js?v=14"></script>
+<script src="leaderboard.js?v=14"></script>
+<script src="version-check.js?v=14"></script>
 
 </body></html>
 
