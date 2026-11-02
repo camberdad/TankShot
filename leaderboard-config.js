@@ -1,0 +1,1 @@
+// Public GitHub Pages config: credentials stay on the local machine.\nwindow.TANKSHOT_JSONBIN_CONFIG = { BIN_ID: "", MASTER_KEY: "" };\n
