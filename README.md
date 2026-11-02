@@ -2,14 +2,13 @@
 
 TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 
-## Latest update — V9
+## Latest update — V10
 
-- Adds five new projectile types (eight alternate types total) with permanent one-time unlocks and increased coin costs.
-- Adds shrapnel fragments, cryo freeze, wide shockwave and cluster blasts, and rail rounds.
-- Adds Settings for difficulty, tank handling, screen shake, and explosion particle density.
-- Adds a High Scores screen for best level reached, shots fired, and tanks defeated.
-- Checks for game updates through `version.json` and safely installs at the title screen.
+- Fixes game startup: the Settings and High Scores controls now exist in the title menu, and the missing best-run display is restored.
+- Prevents missing optional menu controls from stopping the animation loop.
+- Makes the mission briefing start immediately on click or Enter, with the countdown as a fallback.
+- Keeps the V9 projectile unlocks, effects, settings, high scores, and version checker.
 
-The local Documents build is configured for the dedicated TankShot JSONBin. The public GitHub Pages build omits the master key and uses its per-device score fallback. A secure serverless relay is required for shared online scores on the public site.
+The local Documents build is configured for the dedicated TankShot JSONBin. The public GitHub Pages build omits the master key and uses its per-device score fallback. A secure serverless relay is required for shared scores on the public site.
 
 Host the repository with GitHub Pages and embed its `index.html` page in your site.
