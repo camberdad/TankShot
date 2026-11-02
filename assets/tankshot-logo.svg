@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" role="img" aria-labelledby="title desc">
+  <title id="title">TankShot</title>
+  <desc id="desc">A bold arcade tank game logo in amber and steel.</desc>
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#303844"/>
+      <stop offset="1" stop-color="#11151b"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6dc"/>
+      <stop offset="1" stop-color="#b7c3d2"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe08a"/>
+      <stop offset="1" stop-color="#e18b12"/>
+    </linearGradient>
+    <filter id="shadow" x="-15%" y="-25%" width="130%" height="160%">
+      <feDropShadow dx="0" dy="7" stdDeviation="5" flood-color="#000" flood-opacity=".65"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M35 26h830l30 32v124l-30 32H35L5 182V58z" fill="url(#plate)" stroke="#101319" stroke-width="10"/>
+    <path d="M40 39h820l20 22v118l-20 22H40l-20-22V61z" fill="none" stroke="#ffb629" stroke-width="5"/>
+    <path d="M52 51h796v138H52z" fill="none" stroke="#ffe08a" stroke-opacity=".28" stroke-width="2"/>
+    <circle cx="63" cy="62" r="5" fill="#ffcc58"/><circle cx="837" cy="62" r="5" fill="#ffcc58"/>
+    <circle cx="63" cy="178" r="5" fill="#ffcc58"/><circle cx="837" cy="178" r="5" fill="#ffcc58"/>
+    <g transform="translate(88 73)">
+      <rect x="0" y="8" width="94" height="74" rx="18" fill="#11151b" stroke="#768293" stroke-width="5"/>
+      <path d="M16 12v66m18-66v66m18-66v66m18-66v66" stroke="#4e5866" stroke-width="7"/>
+      <rect x="12" y="21" width="70" height="48" rx="11" fill="#3378cb" stroke="#10151d" stroke-width="4"/>
+      <path d="M48 42h72v13H48z" fill="#d7e0ec" stroke="#10151d" stroke-width="4"/>
+      <circle cx="44" cy="45" r="18" fill="#75adf0" stroke="#17263b" stroke-width="5"/>
+      <circle cx="44" cy="45" r="7" fill="#183b68"/>
+    </g>
+    <text x="520" y="151" text-anchor="middle" font-family="'Black Ops One', Impact, 'Arial Black', sans-serif" font-size="106" font-weight="900" letter-spacing="3" paint-order="stroke" stroke="#090c11" stroke-width="14" stroke-linejoin="round">
+      <tspan fill="url(#steel)">TANK</tspan><tspan fill="url(#gold)">SHOT</tspan>
+    </text>
+    <path d="M730 75h70M730 165h70" stroke="#ffb629" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+  </g>
+</svg>
+

@@ -12,9 +12,13 @@ The game is published from the root of the `main` branch using GitHub Pages:
 
 https://camberdad.github.io/TankShot/
 
+## Main menu art
+
+The title screen has a new TankShot battlefield background and custom TankShot logo. The images are in `assets/`.
+
 ## Embed on a website
 
-TankShot uses the same centered 16:9 viewport sizing as CastleRangers V35. Give the iframe a 16:9 size; it will scale to the width of its container:
+TankShot uses the same centered 16:9 viewport sizing as CastleRangers V35. Give the iframe a 16:9 size; it scales to the width of its container:
 
 ```html
 <iframe

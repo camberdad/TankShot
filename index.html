@@ -60,13 +60,15 @@ body {
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.small { padding: 6px 12px; font-size: 14px; }
 .btn:focus-visible, .step button:focus-visible { outline: 3px solid #8fbcff; outline-offset: 2px; }
-.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10; border-radius: 6px; overflow: hidden; }
+.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; touch-action: none; user-select: none; -webkit-user-select: none; }
 canvas.playing { cursor: none; }
 .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,16,.82); padding: 16px; text-align: center; overflow: auto; }
+#ovTitle { background: linear-gradient(90deg, rgba(10,12,16,.48), rgba(10,12,16,.22) 50%, rgba(10,12,16,.48)); }
 .overlay.light { background: rgba(10,12,16,.38); }
 .logo { font-family: var(--font-display); font-size: clamp(36px, 10vw, 92px); line-height: .95; margin: 0; letter-spacing: .05em; font-weight: 400; }
 .logo span { color: var(--accent); }
+.logo-image { display: block; width: clamp(220px, 48vw, 460px); max-height: 30%; object-fit: contain; filter: drop-shadow(0 5px 10px rgba(0,0,0,.7)); }
 .tag { max-width: 48ch; margin: 0; color: #cfd3da; font-size: 20px; line-height: 1.25; }
 .row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: center; }
 .step { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: 14px; color: var(--muted); }
@@ -119,7 +121,7 @@ canvas.playing { cursor: none; }
     <canvas id="cv"></canvas>
 
     <div class="overlay" id="ovTitle">
-      <h2 class="logo">TANK<span>SHOT</span></h2>
+      <img class="logo-image" src="assets/tankshot-logo.svg" alt="TankShot">
       <p class="tag">One hit ends you. Bounce shots off the blocks, lay mines at the chokepoints and clear every arena.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
@@ -966,7 +968,7 @@ function drawMine(m) {
 }
 function render() {
   ctx.setTransform(S, 0, 0, S, 0, 0); ctx.clearRect(0, 0, W, H);
-  if (!grid) { ctx.fillStyle = '#0b0d10'; ctx.fillRect(0, 0, W, H); return; }
+  if (!grid) return;
   let sx = 0, sy = 0; if (G.shake > 0 && !REDUCED) { sx = (Math.random() - .5) * G.shake; sy = (Math.random() - .5) * G.shake; }
   ctx.save(); ctx.translate(sx, sy);
   ctx.drawImage(floorL.c, 0, 0, W, H); ctx.drawImage(trackL.c, 0, 0, W, H);
