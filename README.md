@@ -2,10 +2,10 @@
 
 TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 
-## Latest update — V28
+## Latest update — V29
 
-- Submits a player's saved mission and defeat totals when they quit to title after making progress, as well as on mission completion and game over.
-- Clarifies when a score is sent if the online leaderboard is empty.
+- Adds a Round Complete screen after each mission with Continue and Back to Main Menu choices.
+- Adds a Back to Main Menu button to medal screens as well.
 
-High Scores use JSONBin with the restricted `X-Access-Key` configured in `leaderboard-config.js`. The key needs Bins Read and Bins Update permissions. Host the repository with GitHub Pages and embed its `index.html` page in your site.
+High Scores use JSONBin with the restricted `X-Access-Key` configured in `leaderboard-config.js`. Host the repository with GitHub Pages and embed its `index.html` page in your site.
 
