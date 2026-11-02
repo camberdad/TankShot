@@ -182,7 +182,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 21">V21</span>
+      <span class="version-badge" title="Game version 22">V22</span>
     </div>
   </header>
 
@@ -304,8 +304,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=21"></script>
-<script src="leaderboard.js?v=21"></script>
+<script src="leaderboard-config.js?v=22"></script>
+<script src="leaderboard.js?v=22"></script>
 <script>
 (function () {
 'use strict';
@@ -1116,7 +1116,7 @@ function openCoinCrate(c, r, owner) {
   burst(x, y, 20, ['#ffd867', '#e29b3b', '#9f602c', '#fff2b0'], 150, .55, 3.5);
   drawFloor(); sfx('pop'); return true;
 }
-function boom(x, y, radius, ammoId, level) {
+function boom(x, y, radius, ammoId, level, protectPlayer) {
   radius = radius || BR;
   level = Math.max(1, Math.min(5, Number(level) || 1));
   const glowId = ammoId === 'cluster-frag' ? 'cluster' : AMMO.some(a => a.id === ammoId) ? ammoId : 'standard';
@@ -1125,7 +1125,7 @@ function boom(x, y, radius, ammoId, level) {
   burst(x, y, save.settings.particles === 'low' ? 12 + level * 2 : 30 + level * 8, sparks, 270 + level * 24, .82 + level * .06, 4.5 + level * .4);
   if (save.settings.particles !== 'low') burst(x, y, 7 + level * 2, ['#24272b', '#41464a', '#77766f'], 82, 1.1 + level * .08, 7 + level);
   scorch(x, y, radius * .7, .5);
-  for (const t of tanks) if (t.alive && Math.hypot(t.x - x, t.y - y) < radius + 4) killTank(t);
+  for (const t of tanks) if (t.alive && !(protectPlayer && t.isPlayer) && Math.hypot(t.x - x, t.y - y) < radius + 4) killTank(t);
   let changed = false;
   for (let r = 1; r < ROWS - 1; r++) for (let c = 1; c < COLS - 1; c++) {
     const d = Math.hypot((c + .5) * TS - x, (r + .5) * TS - y);
@@ -1144,7 +1144,7 @@ function boom(x, y, radius, ammoId, level) {
 }
 function projectileImpact(x, y, b) {
   const level = b.level || 1;
-  boom(x, y, b.explosive, b.ammo, level);
+  boom(x, y, b.explosive, b.ammo, level, !!(b.own && b.own.isPlayer));
   if (b.ammo === 'shrapnel') {
     for (let i = 0; i < (b.fragments || 8); i++) {
       const a = i * TAU / (b.fragments || 8), color = ammoColor('shrapnel', level);
@@ -1677,7 +1677,7 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=21"></script>
+<script src="version-check.js?v=22"></script>
 
 </body></html>
 
