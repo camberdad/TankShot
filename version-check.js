@@ -1,17 +1,37 @@
 (function () {
   'use strict';
-  var CURRENT_VERSION = '18';
+  var CURRENT_VERSION = '19';
+  var UPDATE_ATTEMPT_KEY = 'tankshot.updateAttempt';
   var latestVersion = '';
   var checkInProgress = false;
   var applyingUpdate = false;
+  var blockedNoticeShown = false;
 
   function safeToReload() {
     var titleScreen = document.getElementById('ovTitle');
     return !!titleScreen && !titleScreen.hidden;
   }
 
+  function attemptedVersion() {
+    try { return window.sessionStorage.getItem(UPDATE_ATTEMPT_KEY) || ''; }
+    catch (error) { return ''; }
+  }
+
+  function showUpdateBlocked() {
+    if (blockedNoticeShown || document.getElementById('gameUpdateNotice')) return;
+    blockedNoticeShown = true;
+    var notice = document.createElement('div');
+    notice.id = 'gameUpdateNotice';
+    notice.className = 'gameUpdateNotice updatePending';
+    notice.setAttribute('role', 'status');
+    notice.textContent = 'The update could not be applied automatically. Reload this page once to try again.';
+    document.body.appendChild(notice);
+  }
+
   function reloadToVersion(version) {
     if (applyingUpdate) return;
+    if (attemptedVersion() === String(version)) { showUpdateBlocked(); return; }
+    try { window.sessionStorage.setItem(UPDATE_ATTEMPT_KEY, String(version)); } catch (error) {}
     var nextUrl = new URL(window.location.href);
     applyingUpdate = true;
     showUpdateProgress(function () {
@@ -66,8 +86,13 @@
       })
       .then(function (info) {
         var remote = String(info && info.version || '');
-        if (!/^\d+$/.test(remote) || Number(remote) <= Number(CURRENT_VERSION)) return;
+        if (!/^\d+$/.test(remote)) return;
+        if (Number(remote) <= Number(CURRENT_VERSION)) {
+          try { window.sessionStorage.removeItem(UPDATE_ATTEMPT_KEY); } catch (error) {}
+          return;
+        }
         latestVersion = remote;
+        if (attemptedVersion() === remote) { showUpdateBlocked(); return; }
         if (safeToReload()) reloadToVersion(remote);
         else showUpdateNotice();
       })
