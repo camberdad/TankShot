@@ -177,7 +177,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 19">V19</span>
+      <span class="version-badge" title="Game version 20">V20</span>
     </div>
   </header>
 
@@ -533,7 +533,7 @@ function getMap(id) {
 
 /* ================= mission config ================= */
 let SEED = (Math.random() * 1e9) | 0;
-function countFor(m) { return m <= 33 ? 4 : m <= 60 ? 5 : m <= 80 ? 6 : m <= 90 ? 7 : 8; }
+function countFor(m) { return m <= 33 ? 3 : m <= 60 ? 4 : m <= 80 ? 5 : m <= 90 ? 6 : 7; }
 function chooseArena(m, rnd) {
   if (INTROS.indexOf(m) >= 0) return m;
   let pool;
@@ -1069,14 +1069,14 @@ function killTank(t, ammoId, ammoLvl) {
   const hitColors = ammoId === 'cryo' ? ['#f2ffff', '#7cecff', '#a9dfff', '#d9fbff'] : ammoId === 'shock' ? ['#e8faff', '#9d69ff', '#58dfff', '#e2b8ff'] : ammoId === 'rail' || ammoId === 'piercer' ? ['#f4ffff', ammoColor(ammoId, ammoLvl || 1), '#75eaff', '#fff'] : ammoId === 'cluster' || ammoId === 'demolition' ? ['#fff08c', '#ff482e', '#ad2521', '#444'] : ['#ffcf5a', '#ff8a3c', '#3a3a3a', '#d9d9d9'];
   burst(t.x, t.y, 26 + (ammoLvl || 1) * 3, hitColors, 190 + (ammoLvl || 1) * 16, .8 + (ammoLvl || 1) * .06, 4 + (ammoLvl || 1) * .25);
   scorch(t.x, t.y, 24, .55); sfx('pop'); if (save.settings.shake) G.shake = Math.max(G.shake, 6);
-  if (t.isPlayer) playerDown(); else { cfg.dead.add(t.idx); if (G.state === 'play') { runStats.kills++; save.totalKills++; save.bestKills = Math.max(save.bestKills || 0, runStats.kills); grantEliteUnlock(t.type); persist(); } gainCoins(25, t.x, t.y); }
+  if (t.isPlayer) playerDown(); else { cfg.dead.add(t.idx); if (G.state === 'play') { runStats.kills++; save.totalKills++; save.bestKills = Math.max(save.bestKills || 0, runStats.kills); grantEliteUnlock(t.type); persist(); } gainCoins(40, t.x, t.y); }
   updHud();
 }
 function openCoinCrate(c, r, owner) {
   if (grid[r][c] !== T_COIN) return false;
   grid[r][c] = 0;
   const x = (c + .5) * TS, y = (r + .5) * TS;
-  if (owner && owner.isPlayer) gainCoins(35, x, y);
+  if (owner && owner.isPlayer) gainCoins(50, x, y);
   booms.push({ x, y, t: 0, rad: 40, coin: true });
   burst(x, y, 20, ['#ffd867', '#e29b3b', '#9f602c', '#fff2b0'], 150, .55, 3.5);
   drawFloor(); sfx('pop'); return true;
@@ -1236,7 +1236,7 @@ function updateEnemy(e, dt) {
   if (e.frozen > 0) { e.frozen = Math.max(0, e.frozen - dt); return; }
   e.recoil = Math.max(0, e.recoil - dt * 6); e.stealthA += (.16 - e.stealthA) * Math.min(1, dt * 2.2);
   if (e.thinkT <= 0) { e.thinkT = .22 + Math.random() * .1; think(e); }
-  const diff = save.settings.difficulty === 'hard' ? 1.25 : save.settings.difficulty === 'easy' ? .78 : 1;
+  const diff = save.settings.difficulty === 'hard' ? 1.2 : save.settings.difficulty === 'easy' ? .7 : .9;
   e.fireT -= dt; e.thinkT -= dt; e.mineT -= dt; e.dodgeT -= dt; e.fleeT -= dt; e.headT -= dt; e.strafeT -= dt;
   const step = c.turn * 1.4 * diff * dt;
   e.tur += clamp(angDiff(e.aim, e.tur), -step, step);
@@ -1639,7 +1639,7 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=19"></script>
+<script src="version-check.js?v=20"></script>
 
 </body></html>
 
