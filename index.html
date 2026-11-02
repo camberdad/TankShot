@@ -60,7 +60,7 @@ body {
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.small { padding: 6px 12px; font-size: 14px; }
 .btn:focus-visible, .step button:focus-visible { outline: 3px solid #8fbcff; outline-offset: 2px; }
-.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
+.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=6') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; touch-action: none; user-select: none; -webkit-user-select: none; }
 canvas.playing { cursor: none; }
 .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,16,.82); padding: 16px; text-align: center; overflow: auto; }
@@ -105,6 +105,14 @@ canvas.playing { cursor: none; }
 .armory-card .ammo-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #ffd36b; font-weight: 700; }
 .armory-card .btn { width: 100%; }
 .coin-icon { color: #ffd36b; }
+.gameUpdateNotice { position: fixed; z-index: 9999; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(360px, calc(100vw - 36px)); box-sizing: border-box; padding: 22px 24px; border: 1px solid rgba(255,182,41,.75); border-radius: 12px; background: rgba(18,14,10,.97); color: var(--ink); box-shadow: 0 12px 44px rgba(0,0,0,.72); font: 14px var(--font-body); text-align: center; }
+.updateTitle { margin-bottom: 16px; color: var(--accent); font-size: 20px; font-weight: 700; }
+.updateTrack { height: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,.16); border-radius: 8px; background: #28231b; }
+.updateFill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #d49a39, #ffe38a); box-shadow: 0 0 12px rgba(255,213,102,.55); transition: width .72s cubic-bezier(.2,.8,.2,1); }
+.updateStatus { min-height: 22px; margin-top: 12px; opacity: .9; }
+.updateDone .updateFill { background: linear-gradient(90deg, #2fa764, #76e5a0); box-shadow: 0 0 14px rgba(91,232,147,.55); }
+.updateCheck { display: inline-grid; width: 20px; height: 20px; margin-right: 5px; place-items: center; border-radius: 50%; background: #21884e; color: #fff; font: bold 14px Arial, sans-serif; vertical-align: -3px; }
+.updatePending { top: 14px; transform: translateX(-50%); width: auto; padding: 10px 16px; border-radius: 8px; }
 @media (max-width: 640px) {
   .tag { font-size: 15px; }
   .keys { display: none; }
@@ -140,7 +148,7 @@ canvas.playing { cursor: none; }
     <canvas id="cv"></canvas>
 
     <div class="overlay" id="ovTitle">
-      <img class="logo-image" src="assets/tankshot-logo.svg" alt="TankShot">
+      <img class="logo-image" src="assets/tankshot-logo.svg?v=6" alt="TankShot">
       <p class="tag">One hit ends you. Bounce shots off the blocks, lay mines at the chokepoints and clear every arena.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
@@ -680,6 +688,7 @@ function showTitle() {
   $('stVal').textContent = startM;
   $('armoryNote').textContent = 'Unlock ammo permanently. Earn coins by destroying enemy tanks and coin crates.';
   updHud();
+  window.dispatchEvent(new Event('tankshot-title-screen'));
 }
 let startM = 1;
 function cycleAmmo() {
@@ -1278,6 +1287,8 @@ window.requestAnimationFrame(frame);
 if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession, enterMission, keys, aim, stick, get tanks() { return tanks; }, get player() { return player; }, get cfg() { return cfg; }, get mines() { return mines; }, get bullets() { return bullets; }, save, think, MILESTONES, INTROS, BASE_POOL, setSeed: s => { SEED = s; } });
 })();
 </script>
+
+<script src="version-check.js?v=6"></script>
 
 </body></html>
 
