@@ -90,6 +90,21 @@ canvas.playing { cursor: none; }
 .knob { position: absolute; left: 41px; top: 41px; width: 50px; height: 50px; border-radius: 50%; background: var(--panel-2); border: 2px solid var(--muted); pointer-events: none; }
 .touch .btn { padding: 18px 26px; font-size: 20px; }
 @media (pointer: coarse) { .touch { display: flex; } .help { display: none; } }
+.armory-overlay { padding: clamp(8px, 2vw, 20px); background: rgba(10,12,16,.94); }
+.armory-panel { width: min(760px, 100%); max-height: 100%; overflow-y: auto; text-align: left; }
+.armory-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.armory-head .h2 { margin: 0; color: var(--accent); }
+.armory-balance { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+.armory-balance b { color: #ffd36b; font-size: 20px; }
+.armory-note { margin: 12px 0; color: #c3c8d2; }
+.armory-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
+.armory-card { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: linear-gradient(145deg, #262c37, #171b22); text-align: left; }
+.armory-card.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(255,182,41,.3); }
+.armory-card h3 { margin: 0 0 4px; color: var(--ink); font-family: var(--font-display); font-size: 20px; font-weight: 400; }
+.armory-card p { min-height: 36px; margin: 0 0 8px; color: var(--muted); font-size: 14px; line-height: 1.2; }
+.armory-card .ammo-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #ffd36b; font-weight: 700; }
+.armory-card .btn { width: 100%; }
+.coin-icon { color: #ffd36b; }
 @media (max-width: 640px) {
   .tag { font-size: 15px; }
   .keys { display: none; }
@@ -99,6 +114,8 @@ canvas.playing { cursor: none; }
   .medalart { width: 56px; height: 56px; }
   .brand { font-size: 22px; }
   .v { font-size: 19px; }
+  .armory-grid { grid-template-columns: 1fr; }
+  .armory-card { padding: 10px; }
 }
 </style>
 
@@ -109,6 +126,8 @@ canvas.playing { cursor: none; }
       <div class="stat"><span class="k">Mission</span><span class="v" id="hMission">1</span></div>
       <div class="stat"><span class="k">Enemies</span><span class="v" id="hEnemies">0</span></div>
       <div class="stat"><span class="k">Lives</span><span class="v" id="hLives"></span></div>
+      <div class="stat"><span class="k">Coins</span><span class="v" id="hCoins">0</span></div>
+      <div class="stat"><span class="k">Ammo</span><span class="v" id="hAmmo">Shell</span></div>
       <div class="stat"><span class="k">Medals</span><span class="v" id="hMedals"></span></div>
     </div>
     <div class="actions">
@@ -125,6 +144,7 @@ canvas.playing { cursor: none; }
       <p class="tag">One hit ends you. Bounce shots off the blocks, lay mines at the chokepoints and clear every arena.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
+        <button class="btn" id="bArmory" type="button">Armory</button>
         <div class="step" id="stepWrap" hidden>
           <span>Start at mission</span>
           <button id="stDec" type="button" aria-label="Earlier mission">&lsaquo;</button>
@@ -136,11 +156,23 @@ canvas.playing { cursor: none; }
         <li><b>Move</b>WASD or arrows</li>
         <li><b>Aim</b>Mouse</li>
         <li><b>Fire</b>Click or Space</li>
+        <li><b>Ammo</b>Q cycles unlocked types</li>
         <li><b>Mine</b>E, Shift or right click</li>
         <li><b>Pause</b>P or Esc</li>
         <li><b>Sound</b>M</li>
       </ul>
       <div class="shelf" id="shelf"></div>
+    </div>
+
+    <div class="overlay armory-overlay" id="ovArmory" hidden>
+      <section class="armory-panel">
+        <header class="armory-head">
+          <div><h2 class="h2">Armory</h2><p class="armory-balance">Wallet <b id="armoryCoins">0</b> coins</p></div>
+          <button class="btn small" id="bArmoryBack" type="button">Back</button>
+        </header>
+        <p class="armory-note" id="armoryNote">Unlock ammo permanently. Earn coins by destroying enemy tanks and coin crates.</p>
+        <div class="armory-grid" id="armoryGrid"></div>
+      </section>
     </div>
 
     <div class="overlay light" id="ovBrief" hidden>
@@ -208,8 +240,8 @@ function mkLayer() {
 }
 const floorL = mkLayer(), trackL = mkLayer();
 
-const T_BLOCK = 1, T_TALL = 2, T_CORK = 3, T_HOLE = 4, T_FRAME = 6;
-const bulletSolid = t => t === 1 || t === 2 || t === 3 || t === 6;
+const T_BLOCK = 1, T_TALL = 2, T_CORK = 3, T_HOLE = 4, T_FRAME = 6, T_COIN = 7;
+const bulletSolid = t => t === 1 || t === 2 || t === 3 || t === 6 || t === T_COIN;
 const tankSolid = t => t !== 0;
 
 /* ================= helpers ================= */
@@ -453,8 +485,18 @@ function buildCfg(m) {
 
 /* ================= save ================= */
 const SAVE_KEY = 'tankshot.save.v1';
-let save = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1 };
+const AMMO = [
+  { id: 'standard', name: 'Standard Shell', short: 'Shell', cost: 0, speed: 330, bounce: 1, pierce: 0, radius: 0, color: '#fff2b0', desc: 'Reliable shell with one ricochet. Always available.' },
+  { id: 'piercer', name: 'Piercer', short: 'AP', cost: 100, speed: 470, bounce: 0, pierce: 1, radius: 0, color: '#8feaff', desc: 'Fast armor-piercing round that can pass through one tank.' },
+  { id: 'blast', name: 'Blast Shell', short: 'HE', cost: 180, speed: 290, bounce: 0, pierce: 0, radius: 76, color: '#ffb14a', desc: 'Explodes on impact and damages tanks and crates nearby.' },
+  { id: 'demolition', name: 'Demolition Shell', short: 'DEM', cost: 320, speed: 245, bounce: 0, pierce: 0, radius: 118, color: '#ff6848', desc: 'Heavy blast with a larger radius for clearing crowded arenas.' }
+];
+let save = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard' };
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && typeof s === 'object') save = Object.assign(save, s); } catch (e) {}
+if (!Array.isArray(save.ammoUnlocked)) save.ammoUnlocked = ['standard'];
+if (!save.ammoUnlocked.includes('standard')) save.ammoUnlocked.unshift('standard');
+if (!AMMO.some(a => a.id === save.ammoEquipped && save.ammoUnlocked.includes(a.id))) save.ammoEquipped = 'standard';
+if (!Number.isFinite(save.coins) || save.coins < 0) save.coins = 0;
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 
 /* ================= audio ================= */
@@ -493,7 +535,7 @@ function sfx(n) { try { if (SFX[n]) SFX[n](); } catch (e) {} }
 
 /* ================= game state ================= */
 const G = { state: 'title', mission: 1, lives: 3, timer: 0, shake: 0, note: '', after: 'next', afterMission: 0 };
-let cfg = null, grid = null, tanks = [], bullets = [], mines = [], booms = [], parts = [], player = null;
+let cfg = null, grid = null, tanks = [], bullets = [], mines = [], booms = [], parts = [], coinFloats = [], player = null;
 const keys = {}; const aim = { x: W / 2, y: 200 }; let mouseDown = false, aimSeen = false;
 const stick = { x: 0, y: 0, on: false };
 
@@ -510,8 +552,21 @@ function mkTank(type, c, r, isPlayer, idx) {
 
 function drawFloor() {
   const x = floorL.x;
-  x.fillStyle = '#2a2f38'; x.fillRect(0, 0, W, H);
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { x.fillStyle = ((c + r) & 1) ? FLOOR_A : FLOOR_B; x.fillRect(c * TS, r * TS + OY, TS, TS); }
+  x.fillStyle = '#342c23'; x.fillRect(0, 0, W, H);
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const px = c * TS, py = r * TS + OY, light = ((c + r) & 1) === 0;
+    const tile = x.createLinearGradient(px, py, px + TS, py + TS);
+    tile.addColorStop(0, light ? '#dfd0aa' : '#d4c49a'); tile.addColorStop(1, light ? '#d5c49a' : '#cbb98d');
+    x.fillStyle = tile; x.fillRect(px, py, TS, TS);
+    x.fillStyle = 'rgba(255,250,224,.18)'; x.fillRect(px + 1, py + 1, TS - 2, 1);
+    x.fillStyle = 'rgba(78,57,28,.12)'; x.fillRect(px + 1, py + TS - 2, TS - 2, 1);
+    x.strokeStyle = 'rgba(93,70,37,.12)'; x.lineWidth = 1; x.strokeRect(px + .5, py + .5, TS - 1, TS - 1);
+    for (let i = 0; i < 3; i++) {
+      const seed = (c * 47 + r * 91 + i * 29) % 997;
+      x.fillStyle = i & 1 ? 'rgba(255,248,220,.16)' : 'rgba(117,89,48,.1)';
+      x.fillRect(px + 5 + seed % 29, py + 6 + (seed * 7) % 27, 1.5, 1.5);
+    }
+  }
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const t = grid[r][c];
     if (bulletSolid(t)) { x.fillStyle = 'rgba(40,28,12,.2)'; x.fillRect(c * TS + 7, r * TS + OY + 9, TS, TS); }
@@ -543,24 +598,68 @@ function stamp(t, dist) {
 
 function resetArena() {
   const m = cfg.map; grid = m.grid.map(r => r.slice());
-  tanks = []; bullets = []; mines = []; booms = []; parts = [];
+  tanks = []; bullets = []; mines = []; booms = []; parts = []; coinFloats = [];
   player = mkTank(0, m.player.c, m.player.r, true, -1); player.body = 0; tanks.push(player);
   cfg.enemies.forEach((e, i) => {
     if (cfg.dead.has(i)) return;
     const t = mkTank(e.type, e.c, e.r, false, i);
     t.tur = t.aim = Math.atan2(player.y - t.y, player.x - t.x); tanks.push(t);
   });
+  placeCoinCrates();
   trackL.x.clearRect(0, 0, W, H); drawFloor(); G.shake = 0;
 }
 
+function placeCoinCrates() {
+  const occupied = [{ c: cfg.map.player.c, r: cfg.map.player.r }].concat(cfg.enemies.map(e => ({ c: e.c, r: e.r })));
+  const spots = [];
+  for (let r = 1; r < ROWS - 1; r++) for (let c = 1; c < COLS - 1; c++) {
+    if (grid[r][c] !== 0) continue;
+    if (occupied.some(p => Math.hypot(p.c - c, p.r - r) < 2.2)) continue;
+    spots.push({ c, r });
+  }
+  const rnd = rng32((SEED ^ Math.imul(G.mission, 1013904223)) >>> 0);
+  for (const p of shuffle(spots, rnd).slice(0, 4)) grid[p.r][p.c] = T_COIN;
+}
+
 /* ================= HUD & overlays ================= */
-const OVS = ['ovTitle', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
+const OVS = ['ovTitle', 'ovArmory', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
 function setOv(name) { for (const id of OVS) $(id).hidden = (id !== name); }
 function enemiesLeft() { let n = 0; for (const t of tanks) if (!t.isPlayer && t.alive) n++; return n; }
+function ammoFor(id) { return AMMO.find(a => a.id === id) || AMMO[0]; }
+function updateWallet() {
+  $('hCoins').textContent = save.coins.toLocaleString();
+  $('hAmmo').textContent = ammoFor(save.ammoEquipped).short;
+  $('armoryCoins').textContent = save.coins.toLocaleString();
+}
+function gainCoins(amount, x, y) {
+  save.coins += amount; persist(); updateWallet();
+  if (Number.isFinite(x) && Number.isFinite(y)) coinFloats.push({ x, y, t: 0, amount });
+}
+function renderArmory() {
+  updateWallet();
+  $('armoryGrid').innerHTML = AMMO.map(a => {
+    const owned = save.ammoUnlocked.includes(a.id), equipped = save.ammoEquipped === a.id;
+    const action = owned ? (equipped ? 'Equipped' : 'Equip') : 'Unlock';
+    const cost = a.cost ? '<span class="coin-icon">' + a.cost + ' coins</span>' : '<span>Free</span>';
+    return '<article class="armory-card' + (equipped ? ' selected' : '') + '">' +
+      '<h3>' + a.name + '</h3><p>' + a.desc + '</p><div class="ammo-meta">' + cost + '<span>' + (equipped ? 'Selected' : owned ? 'Owned' : '') + '</span></div>' +
+      '<button class="btn ' + (equipped ? 'primary' : '') + ' small" type="button" data-ammo="' + a.id + '">' + action + '</button></article>';
+  }).join('');
+}
+function openArmory() { renderArmory(); setOv('ovArmory'); }
+function buyOrEquipAmmo(id) {
+  const a = ammoFor(id); if (!AMMO.some(x => x.id === id)) return;
+  if (!save.ammoUnlocked.includes(id)) {
+    if (save.coins < a.cost) { $('armoryNote').textContent = 'You need ' + (a.cost - save.coins) + ' more coins to unlock ' + a.name + '.'; return; }
+    save.coins -= a.cost; save.ammoUnlocked.push(id);
+  }
+  save.ammoEquipped = id; persist(); $('armoryNote').textContent = 'Equipped ' + a.name + '. Ammo unlocks are saved.'; renderArmory(); updHud();
+}
 function updHud() {
   $('hMission').textContent = G.state === 'title' ? '-' : G.mission;
   $('hEnemies').textContent = cfg && G.state !== 'title' ? enemiesLeft() + ' / ' + cfg.enemies.length : '-';
   $('hLives').innerHTML = G.state === 'title' ? '' : '<i class="life"></i>'.repeat(Math.max(0, G.lives));
+  updateWallet();
   $('hMedals').innerHTML =
     '<i class="medal m-bronze' + (save.bronze ? ' on' : '') + '" title="Bronze"></i>' +
     '<i class="medal m-silver' + (save.silver ? ' on' : '') + '" title="Silver"></i>' +
@@ -579,9 +678,17 @@ function showTitle() {
   $('stepWrap').hidden = top <= 1;
   if (startM > top) startM = top;
   $('stVal').textContent = startM;
+  $('armoryNote').textContent = 'Unlock ammo permanently. Earn coins by destroying enemy tanks and coin crates.';
   updHud();
 }
 let startM = 1;
+function cycleAmmo() {
+  const owned = AMMO.filter(a => save.ammoUnlocked.includes(a.id));
+  if (owned.length < 2) return;
+  const index = owned.findIndex(a => a.id === save.ammoEquipped);
+  save.ammoEquipped = owned[(index + 1) % owned.length].id;
+  persist(); updateWallet();
+}
 
 function startSession(m) {
   SEED = (Math.random() * 1e9) | 0;
@@ -677,10 +784,12 @@ function separate() {
 
 /* ================= shots, mines, blasts ================= */
 function bulletsOf(t) { let n = 0; for (const b of bullets) if (b.own === t) n++; return n; }
-function fire(t, ang, spd, bounce) {
+function fire(t, ang, spd, bounce, ammoId) {
+  const ammo = t.isPlayer ? ammoFor(ammoId || save.ammoEquipped) : null;
+  if (ammo) { spd = ammo.speed; bounce = ammo.bounce; }
   const d = t.r + 6; let x = t.x + Math.cos(ang) * d, y = t.y + Math.sin(ang) * d;
   if (bulletSolid(tileAt(Math.floor(x / TS), Math.floor(y / TS)))) { x = t.x; y = t.y; }
-  bullets.push({ x, y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, b: bounce, own: t, age: 0, fast: spd > 300 });
+  bullets.push({ x, y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, b: bounce, own: t, age: 0, fast: spd > 300, ammo: ammo ? ammo.id : 'standard', pierce: ammo ? ammo.pierce : 0, explosive: ammo ? ammo.radius : 0, color: ammo ? ammo.color : '#fff2b0' });
   t.recoil = 1; if (t.type && TYPES[t.type] && TYPES[t.type].stealth) t.stealthA = .7;
   burst(x, y, 4, ['#fff2b0', '#ffd36b'], 60, .18, 2.2);
   sfx('shot');
@@ -697,22 +806,39 @@ function killTank(t) {
   t.alive = false;
   burst(t.x, t.y, 26, ['#ffcf5a', '#ff8a3c', '#3a3a3a', '#d9d9d9'], 190, .8, 4);
   scorch(t.x, t.y, 24, .55); sfx('pop'); G.shake = Math.max(G.shake, 6);
-  if (t.isPlayer) playerDown(); else cfg.dead.add(t.idx);
+  if (t.isPlayer) playerDown(); else { cfg.dead.add(t.idx); gainCoins(25, t.x, t.y); }
   updHud();
 }
-function boom(x, y) {
-  booms.push({ x, y, t: 0 }); G.shake = Math.max(G.shake, 12); sfx('boom');
+function openCoinCrate(c, r, owner) {
+  if (grid[r][c] !== T_COIN) return false;
+  grid[r][c] = 0;
+  const x = (c + .5) * TS, y = (r + .5) * TS;
+  if (owner && owner.isPlayer) gainCoins(35, x, y);
+  booms.push({ x, y, t: 0, rad: 40, coin: true });
+  burst(x, y, 20, ['#ffd867', '#e29b3b', '#9f602c', '#fff2b0'], 150, .55, 3.5);
+  drawFloor(); sfx('pop'); return true;
+}
+function boom(x, y, radius) {
+  radius = radius || BR;
+  booms.push({ x, y, t: 0, rad: radius }); G.shake = Math.max(G.shake, 12); sfx('boom');
   burst(x, y, 40, ['#ffcf5a', '#ff7a2e', '#444', '#bbb'], 260, .9, 5);
-  scorch(x, y, 60, .5);
-  for (const t of tanks) if (t.alive && Math.hypot(t.x - x, t.y - y) < BR + 4) killTank(t);
-  let cork = false;
+  scorch(x, y, radius * .7, .5);
+  for (const t of tanks) if (t.alive && Math.hypot(t.x - x, t.y - y) < radius + 4) killTank(t);
+  let changed = false;
   for (let r = 1; r < ROWS - 1; r++) for (let c = 1; c < COLS - 1; c++) {
-    if (grid[r][c] !== T_CORK) continue;
-    if (Math.hypot((c + .5) * TS - x, (r + .5) * TS - y) < BR) { grid[r][c] = 0; cork = true; burst((c + .5) * TS, (r + .5) * TS, 10, ['#e8bca6', '#b98a72', '#8d6551'], 150, .7, 4); }
+    const d = Math.hypot((c + .5) * TS - x, (r + .5) * TS - y);
+    if (d >= radius) continue;
+    if (grid[r][c] === T_COIN) {
+      grid[r][c] = 0; changed = true; gainCoins(35, (c + .5) * TS, (r + .5) * TS);
+      burst((c + .5) * TS, (r + .5) * TS, 14, ['#ffd867', '#e29b3b', '#a96d38'], 160, .65, 4);
+    } else if (grid[r][c] === T_CORK) {
+      grid[r][c] = 0; changed = true;
+      burst((c + .5) * TS, (r + .5) * TS, 10, ['#efc8ae', '#bd8c70', '#79513c'], 150, .7, 4);
+    }
   }
-  if (cork) drawFloor();
-  bullets = bullets.filter(b => Math.hypot(b.x - x, b.y - y) >= BR);
-  for (const m of mines) if (m.fuse === null && Math.hypot(m.x - x, m.y - y) < BR) m.fuse = .12 + Math.random() * .08;
+  if (changed) drawFloor();
+  bullets = bullets.filter(b => Math.hypot(b.x - x, b.y - y) >= radius);
+  for (const m of mines) if (m.fuse === null && Math.hypot(m.x - x, m.y - y) < radius) m.fuse = .12 + Math.random() * .08;
 }
 function explodeMine(m) { const i = mines.indexOf(m); if (i >= 0) mines.splice(i, 1); boom(m.x, m.y); }
 
@@ -814,7 +940,7 @@ function updatePlayer(p, dt) {
   p.vx += ((p.x - ox) / dt - p.vx) * .35; p.vy += ((p.y - oy) / dt - p.vy) * .35;
   p.tur = Math.atan2(aim.y - p.y, aim.x - p.x);
   p.fireT -= dt; p.recoil = Math.max(0, p.recoil - dt * 6);
-  if ((mouseDown || keys.Space) && p.fireT <= 0 && bulletsOf(p) < PL.mb) { fire(p, p.tur, PL.bs, PL.b); p.fireT = PL.cd; }
+  if ((mouseDown || keys.Space) && p.fireT <= 0 && bulletsOf(p) < PL.mb) { fire(p, p.tur, PL.bs, PL.b, save.ammoEquipped); p.fireT = PL.cd; }
 }
 function updateEnemy(e, dt) {
   const c = TYPES[e.type], p = player;
@@ -858,6 +984,14 @@ function updateBullets(dt) {
       const nx = b.x + b.vx * sd, ny = b.y + b.vy * sd;
       const sx = bulletSolid(tileAt(Math.floor(nx / TS), Math.floor(b.y / TS))), sy = bulletSolid(tileAt(Math.floor(b.x / TS), Math.floor(ny / TS)));
       if (sx || sy || bulletSolid(tileAt(Math.floor(nx / TS), Math.floor(ny / TS)))) {
+        const hit = [
+          { t: tileAt(Math.floor(nx / TS), Math.floor(ny / TS)), c: Math.floor(nx / TS), r: Math.floor(ny / TS) },
+          { t: tileAt(Math.floor(nx / TS), Math.floor(b.y / TS)), c: Math.floor(nx / TS), r: Math.floor(b.y / TS) },
+          { t: tileAt(Math.floor(b.x / TS), Math.floor(ny / TS)), c: Math.floor(b.x / TS), r: Math.floor(ny / TS) }
+        ].find(q => bulletSolid(q.t));
+        const hitTile = hit && hit.t;
+        if (b.explosive) { dead = true; boom(b.x, b.y, b.explosive); break; }
+        if (hitTile === T_COIN) { dead = true; openCoinCrate(hit.c, hit.r, b.own); break; }
         if (b.b <= 0) { dead = true; burst(b.x, b.y, 5, ['#fff2b0', '#d8c9a3'], 90, .25, 2); break; }
         b.b--; if (sx) b.vx = -b.vx; if (sy) b.vy = -b.vy; if (!sx && !sy) { b.vx = -b.vx; b.vy = -b.vy; }
         burst(b.x, b.y, 4, ['#fff2b0', '#d8c9a3'], 80, .2, 2); sfx('bounce'); continue;
@@ -865,12 +999,17 @@ function updateBullets(dt) {
       b.x = nx; b.y = ny;
       for (const t of tanks) {
         if (!t.alive) continue;
-        if (Math.hypot(t.x - b.x, t.y - b.y) < t.r + 3) { dead = true; killTank(t); break; }
+        if (Math.hypot(t.x - b.x, t.y - b.y) < t.r + 3) {
+          if (b.explosive) { dead = true; boom(t.x, t.y, b.explosive); break; }
+          killTank(t);
+          if (b.pierce > 0) { b.pierce--; burst(b.x, b.y, 7, [b.color, '#fff'], 90, .3, 2.5); }
+          else { dead = true; break; }
+        }
       }
       if (dead) break;
       for (const m of mines) if (Math.hypot(m.x - b.x, m.y - b.y) < 12) { dead = true; explodeMine(m); break; }
     }
-    if (dead) { bullets.splice(i, 1); continue; }
+    if (dead) { const currentIndex = bullets.indexOf(b); if (currentIndex >= 0) bullets.splice(currentIndex, 1); continue; }
   }
   for (let i = bullets.length - 1; i >= 0; i--) for (let j = i - 1; j >= 0; j--) {
     const a = bullets[i], b = bullets[j];
@@ -889,6 +1028,8 @@ function updateFx(dt) {
   for (const b of booms) b.t += dt; booms = booms.filter(b => b.t < .7);
   for (const p of parts) { p.l -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .94; p.vy *= .94; }
   parts = parts.filter(p => p.l > 0);
+  for (const c of coinFloats) { c.t += dt; c.y -= 24 * dt; }
+  coinFloats = coinFloats.filter(c => c.t < 1);
   G.shake = Math.max(0, G.shake - dt * 30);
 }
 function stepWorld(dt, live) {
@@ -913,48 +1054,98 @@ function update(dt) {
 /* ================= rendering ================= */
 function drawBlock(c, r, t) {
   const x = c * TS, y = r * TS + OY, h = t === T_TALL ? 2 : 1, lift = h * EXT;
-  const pal = t === T_FRAME ? ['#3d4552', '#262b34', '#171a20'] : t === T_TALL ? ['#a3b4c8', '#66758a', '#3f4b5c'] : t === T_CORK ? ['#ecc2ac', '#b98a72', '#8d6551'] : ['#cf9558', '#8f5e2e', '#5e3a18'];
-  ctx.fillStyle = pal[1]; ctx.fillRect(x, y + TS - lift, TS, lift);
-  ctx.fillStyle = pal[0]; ctx.fillRect(x, y - lift, TS, TS);
-  ctx.fillStyle = 'rgba(255,255,255,.24)'; ctx.fillRect(x, y - lift, TS, 2); ctx.fillRect(x, y - lift, 2, TS);
-  ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(x, y - lift + TS - 2, TS, 2); ctx.fillRect(x + TS - 2, y - lift, 2, TS);
-  ctx.strokeStyle = pal[2]; ctx.lineWidth = 1; ctx.strokeRect(x + .5, y - lift + .5, TS - 1, TS - 1);
-  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fillRect(x, y + TS - lift, TS, 1);
-  if (t === T_TALL) { ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(x, y + TS - EXT, TS, 1); ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(x + 8, y - lift + 8, TS - 16, 2); }
-  else if (t === T_BLOCK) { ctx.fillStyle = 'rgba(70,40,12,.25)'; ctx.fillRect(x + 4, y - lift + 12, TS - 8, 1); ctx.fillRect(x + 4, y - lift + 26, TS - 8, 1); }
-  else if (t === T_CORK) {
-    ctx.fillStyle = 'rgba(120,70,50,.45)';
-    for (let i = 0; i < 7; i++) { const sx = ((c * 31 + r * 17 + i * 13) % 30) + 4, sy = ((c * 11 + r * 23 + i * 19) % 30) + 4; ctx.fillRect(x + sx, y - lift + sy, 3, 2); }
+  const top = y - lift;
+  ctx.fillStyle = 'rgba(25,18,10,.24)'; ctx.fillRect(x + 7, top + TS - 1, TS, lift + 8);
+  if (t === T_COIN) {
+    ctx.fillStyle = '#74451f'; ctx.fillRect(x + 1, y + TS - lift - 1, TS - 2, lift + 2);
+    const crate = ctx.createLinearGradient(x, top, x + TS, top + TS);
+    crate.addColorStop(0, '#f2bd63'); crate.addColorStop(.5, '#d28c3f'); crate.addColorStop(1, '#a96027');
+    ctx.fillStyle = crate; ctx.fillRect(x + 1, top + 1, TS - 2, TS - 2);
+    ctx.strokeStyle = '#693b1b'; ctx.lineWidth = 2; ctx.strokeRect(x + 2, top + 2, TS - 4, TS - 4);
+    ctx.strokeStyle = 'rgba(255,225,153,.8)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x + 5, top + 7); ctx.lineTo(x + TS - 5, top + TS - 7); ctx.moveTo(x + TS - 5, top + 7); ctx.lineTo(x + 5, top + TS - 7); ctx.stroke();
+    ctx.fillStyle = '#ffd867'; ctx.beginPath(); ctx.arc(x + TS / 2, top + TS / 2, 7, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#8a541e'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#9a5d1c'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', x + TS / 2, top + TS / 2 + .5);
+    ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = 'rgba(255,255,255,.46)'; ctx.fillRect(x + 4, top + 4, 5, 2);
+    return;
   }
+  const pal = t === T_FRAME ? ['#768394', '#303946', '#141a21'] : t === T_TALL ? ['#b8c8d8', '#748396', '#394655'] : t === T_CORK ? ['#efc8ae', '#bd8c70', '#79513c'] : ['#d9a064', '#a96d38', '#633d21'];
+  ctx.fillStyle = pal[1]; ctx.fillRect(x + 1, y + TS - lift, TS - 1, lift);
+  const face = ctx.createLinearGradient(x, top, x + TS, top + TS);
+  face.addColorStop(0, pal[0]); face.addColorStop(1, pal[1]);
+  ctx.fillStyle = face; ctx.fillRect(x, top, TS, TS);
+  ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillRect(x, top, TS, 2); ctx.fillRect(x, top, 2, TS);
+  ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(x, top + TS - 2, TS, 2); ctx.fillRect(x + TS - 2, top, 2, TS);
+  ctx.strokeStyle = pal[2]; ctx.lineWidth = 1.4; ctx.strokeRect(x + .7, top + .7, TS - 1.4, TS - 1.4);
+  if (t === T_FRAME) {
+    ctx.strokeStyle = 'rgba(204,220,236,.48)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x + 7, top + 7); ctx.lineTo(x + TS - 7, top + TS - 7); ctx.moveTo(x + TS - 7, top + 7); ctx.lineTo(x + 7, top + TS - 7); ctx.stroke();
+  } else if (t === T_TALL) {
+    ctx.fillStyle = 'rgba(0,0,0,.26)'; ctx.fillRect(x, y + TS - EXT, TS, 2);
+    ctx.fillStyle = 'rgba(255,255,255,.24)'; ctx.fillRect(x + 7, top + 8, TS - 14, 2);
+    ctx.fillRect(x + 7, top + 18, TS - 14, 1);
+  } else {
+    for (let plank = 0; plank < 3; plank++) {
+      const py = top + 6 + plank * 10;
+      ctx.fillStyle = 'rgba(91,48,21,.28)'; ctx.fillRect(x + 3, py + 7, TS - 6, 1.5);
+      ctx.fillStyle = 'rgba(255,226,181,.22)'; ctx.fillRect(x + 4, py, TS - 8, 1.5);
+    }
+    ctx.strokeStyle = 'rgba(84,49,27,.72)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x + 5, top + 5); ctx.lineTo(x + TS - 5, top + TS - 5); ctx.moveTo(x + TS - 5, top + 5); ctx.lineTo(x + 5, top + TS - 5); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,218,166,.54)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x + 6, top + 5); ctx.lineTo(x + TS - 6, top + TS - 6); ctx.moveTo(x + TS - 6, top + 5); ctx.lineTo(x + 6, top + TS - 6); ctx.stroke();
+    for (const [nx, ny] of [[5, 5], [TS - 5, 5], [5, TS - 5], [TS - 5, TS - 5]]) {
+      ctx.fillStyle = '#e6bd83'; ctx.beginPath(); ctx.arc(x + nx, top + ny, 1.2, 0, TAU); ctx.fill();
+    }
+  }
+  ctx.fillStyle = 'rgba(0,0,0,.32)'; ctx.fillRect(x + 1, y + TS - lift, TS - 1, 2);
 }
 function drawTank(t) {
   const cf = t.isPlayer ? PL : TYPES[t.type];
   const x = t.x, y = t.y + OY;
   ctx.save(); ctx.globalAlpha = cf.stealth ? t.stealthA : 1;
-  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x + 3, y + 6, 18, 12, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x + 4, y + 7, 19, 13, 0, 0, TAU); ctx.fill();
   ctx.translate(x, y - 3); ctx.rotate(t.body);
-  ctx.fillStyle = '#1d2025'; ctx.fillRect(-16, -14, 32, 8); ctx.fillRect(-16, 6, 32, 8);
-  ctx.fillStyle = '#3b4048'; const off = ((t.tread % 6) + 6) % 6;
-  for (let i = -16 + off; i < 14; i += 6) { ctx.fillRect(i, -14, 2, 8); ctx.fillRect(i, 6, 2, 8); }
-  ctx.fillStyle = cf.dk; ctx.fillRect(-13, -9, 26, 18);
-  ctx.fillStyle = cf.col; ctx.fillRect(-13, -9, 26, 15);
-  ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(-13, -9, 26, 3);
+  const track = ctx.createLinearGradient(0, -16, 0, 16); track.addColorStop(0, '#11151a'); track.addColorStop(.5, '#454b50'); track.addColorStop(1, '#171b20');
+  ctx.fillStyle = track; ctx.fillRect(-18, -16, 36, 9); ctx.fillRect(-18, 7, 36, 9);
+  ctx.strokeStyle = '#0c0f13'; ctx.lineWidth = 1.4; ctx.strokeRect(-17.5, -15.5, 35, 8); ctx.strokeRect(-17.5, 7.5, 35, 8);
+  const off = ((t.tread % 6) + 6) % 6;
+  for (let i = -16 + off; i < 17; i += 6) {
+    ctx.fillStyle = '#72777a'; ctx.fillRect(i, -15, 2.3, 7); ctx.fillRect(i, 8, 2.3, 7);
+    ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(i, -15, 1, 7); ctx.fillRect(i, 8, 1, 7);
+  }
+  const hull = ctx.createLinearGradient(-13, -11, 14, 12); hull.addColorStop(0, cf.lt); hull.addColorStop(.35, cf.col); hull.addColorStop(1, cf.dk);
+  ctx.fillStyle = hull; ctx.strokeStyle = '#111820'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(-12, -11); ctx.lineTo(9, -11); ctx.lineTo(14, -7); ctx.lineTo(14, 8); ctx.lineTo(9, 11); ctx.lineTo(-12, 11); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fillRect(-10, -9, 18, 2);
+  ctx.fillStyle = 'rgba(10,15,20,.2)'; ctx.fillRect(-10, 7, 20, 2);
+  for (const xx of [-9, -3, 3, 9]) { ctx.fillStyle = 'rgba(15,20,25,.32)'; ctx.fillRect(xx, -10, 2, 2); ctx.fillRect(xx, 8, 2, 2); }
   ctx.rotate(t.tur - t.body);
   const rc = t.recoil * 4;
-  ctx.fillStyle = cf.dk; ctx.fillRect(3 - rc, -3, 22, 6);
-  ctx.fillStyle = cf.lt; ctx.fillRect(3 - rc, -3, 22, 2);
-  ctx.fillStyle = '#111'; ctx.fillRect(21 - rc, -3.5, 4, 7);
-  ctx.fillStyle = cf.lt; ctx.beginPath(); ctx.arc(0, 0, 9, 0, TAU); ctx.fill();
-  ctx.strokeStyle = cf.dk; ctx.lineWidth = 2; ctx.stroke();
+  const barrel = ctx.createLinearGradient(0, -4, 0, 4); barrel.addColorStop(0, cf.lt); barrel.addColorStop(.5, cf.col); barrel.addColorStop(1, cf.dk);
+  ctx.fillStyle = '#111820'; ctx.fillRect(2 - rc, -4.3, 27, 8.6);
+  ctx.fillStyle = barrel; ctx.fillRect(3 - rc, -3, 23, 6);
+  ctx.fillStyle = 'rgba(255,255,255,.36)'; ctx.fillRect(4 - rc, -3, 18, 1.4);
+  ctx.fillStyle = '#0d1218'; ctx.fillRect(22 - rc, -4.5, 4, 9);
+  ctx.fillStyle = cf.col; ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#111820'; ctx.lineWidth = 2.5; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.arc(-2, -2, 5.5, Math.PI, TAU); ctx.stroke();
   ctx.fillStyle = cf.dk; ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#d8e0e5'; ctx.beginPath(); ctx.arc(-1, -1, 1.2, 0, TAU); ctx.fill();
   ctx.restore();
 }
 function drawBullet(b) {
   const x = b.x, y = b.y + OY;
-  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x + 2, y + 6, 3.5, 2, 0, 0, TAU); ctx.fill();
-  if (b.fast) { const sp = Math.hypot(b.vx, b.vy); ctx.strokeStyle = 'rgba(255,240,180,.6)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, y - 3); ctx.lineTo(x - b.vx / sp * 10, y - 3 - b.vy / sp * 10); ctx.stroke(); }
-  ctx.fillStyle = '#fff6c8'; ctx.beginPath(); ctx.arc(x, y - 3, 3.6, 0, TAU); ctx.fill();
-  ctx.strokeStyle = '#6b5420'; ctx.lineWidth = 1.2; ctx.stroke();
+  const radius = b.explosive ? 5.2 : b.pierce ? 4 : 3.6;
+  ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(x + 2, y + 6, radius + 1, 2.5, 0, 0, TAU); ctx.fill();
+  if (b.fast || b.explosive) {
+    const sp = Math.hypot(b.vx, b.vy), trail = b.explosive ? 17 : 10;
+    ctx.strokeStyle = b.color + '88'; ctx.lineWidth = b.explosive ? 5 : 3; ctx.beginPath(); ctx.moveTo(x, y - 3); ctx.lineTo(x - b.vx / sp * trail, y - 3 - b.vy / sp * trail); ctx.stroke();
+  }
+  ctx.fillStyle = b.color || '#fff6c8'; ctx.beginPath(); ctx.arc(x, y - 3, radius, 0, TAU); ctx.fill();
+  ctx.strokeStyle = b.explosive ? '#713b20' : '#35404a'; ctx.lineWidth = 1.2; ctx.stroke();
 }
 function drawMine(m) {
   const x = m.x, y = m.y + OY;
@@ -982,13 +1173,24 @@ function render() {
     for (const f of rows[r]) f();
   }
   for (const b of booms) {
-    const k = b.t / .7, rad = BR * (.3 + .7 * Math.min(1, k * 2.4)), a = 1 - k, y = b.y + OY;
-    const g = ctx.createRadialGradient(b.x, y, 4, b.x, y, rad);
-    g.addColorStop(0, 'rgba(255,240,170,' + (.95 * a) + ')'); g.addColorStop(.5, 'rgba(255,130,40,' + (.7 * a) + ')'); g.addColorStop(1, 'rgba(255,60,20,0)');
+    const k = b.t / .7, rad = (b.rad || BR) * (.18 + .82 * Math.min(1, k * 2.4)), a = 1 - k, y = b.y + OY;
+    const g = ctx.createRadialGradient(b.x, y, 2, b.x, y, rad);
+    const core = b.coin ? '255,232,142' : '255,246,205', flame = b.coin ? '244,166,47' : '255,112,32';
+    g.addColorStop(0, 'rgba(' + core + ',' + (.98 * a) + ')');
+    g.addColorStop(.25, 'rgba(255,211,95,' + (.94 * a) + ')');
+    g.addColorStop(.62, 'rgba(' + flame + ',' + (.72 * a) + ')');
+    g.addColorStop(1, 'rgba(224,54,24,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(b.x, y, rad, 0, TAU); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,230,180,' + (.8 * a) + ')'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(b.x, y, rad * .98, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = (b.coin ? 'rgba(255,240,177,' : 'rgba(255,230,180,') + (.82 * a) + ')';
+    ctx.lineWidth = b.coin ? 2 : 3; ctx.beginPath(); ctx.arc(b.x, y, rad * .92, 0, TAU); ctx.stroke();
+    if (k < .45) { ctx.strokeStyle = 'rgba(255,247,220,' + (1 - k / .45) * .7 + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(b.x, y, rad * (1.1 + k), 0, TAU); ctx.stroke(); }
   }
   for (const p of parts) { ctx.globalAlpha = Math.max(0, p.l / p.m); ctx.fillStyle = p.c; ctx.fillRect(p.x - p.s / 2, p.y + OY - p.s / 2, p.s, p.s); }
+  for (const c of coinFloats) {
+    ctx.globalAlpha = Math.max(0, 1 - c.t); ctx.font = 'bold 19px "Barlow Condensed", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40,25,8,.8)'; ctx.strokeText('+' + c.amount + ' COINS', c.x, c.y + OY);
+    ctx.fillStyle = '#ffe17a'; ctx.fillText('+' + c.amount + ' COINS', c.x, c.y + OY);
+  }
   ctx.globalAlpha = 1;
   if (G.state === 'clear') {
     ctx.font = '64px "Black Ops One", Impact, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(10,12,16,.85)';
@@ -1023,7 +1225,8 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code.indexOf('Arrow') === 0) { if (G.state === 'play' || G.state === 'brief') e.preventDefault(); }
   if (e.repeat) { keys[e.code] = true; return; }
   keys[e.code] = true;
-  if (e.code === 'KeyE' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') playerMine();
+  if (e.code === 'KeyQ' && G.state === 'play') cycleAmmo();
+  else if (e.code === 'KeyE' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') playerMine();
   else if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
   else if (e.code === 'KeyM') toggleMute();
   else if ((e.code === 'Enter' || e.code === 'Space') && G.state === 'brief' && G.timer < 2.1) G.timer = 0;
@@ -1051,6 +1254,9 @@ $('bPause').addEventListener('click', () => { togglePause(); });
 $('bResume').addEventListener('click', () => togglePause());
 $('bQuit').addEventListener('click', () => { cfg = null; tanks = []; grid = null; showTitle(); });
 $('bPlay').addEventListener('click', () => { actx(); startSession(startM); });
+$('bArmory').addEventListener('click', openArmory);
+$('bArmoryBack').addEventListener('click', showTitle);
+$('armoryGrid').addEventListener('click', e => { const b = e.target.closest('[data-ammo]'); if (b) buyOrEquipAmmo(b.dataset.ammo); });
 $('stDec').addEventListener('click', () => { startM = Math.max(1, startM - 1); $('stVal').textContent = startM; });
 $('stInc').addEventListener('click', () => { const lim = save.unlocked ? 100 : 20; startM = Math.min(lim, save.max, startM + 1); $('stVal').textContent = startM; });
 $('bOver').addEventListener('click', () => { grid = null; cfg = null; tanks = []; showTitle(); });
