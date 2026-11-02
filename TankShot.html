@@ -187,7 +187,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 27">V27</span>
+      <span class="version-badge" title="Game version 28">V28</span>
     </div>
   </header>
 
@@ -308,8 +308,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=27"></script>
-<script src="leaderboard.js?v=27"></script>
+<script src="leaderboard-config.js?v=28"></script>
+<script src="leaderboard.js?v=28"></script>
 <script>
 (function () {
 'use strict';
@@ -889,11 +889,12 @@ function renderScores() {
     const list = scores.slice(0, 10);
     $('scoreBoard').innerHTML = list.length ? '<div class="score-row score-head"><span>#</span><span>Player</span><span>Mission</span><span>Tanks defeated</span></div>' + list.map(function (s, i) {
       return '<div class="score-row"><span>' + (i + 1) + '</span><b>' + String(s.name || 'Guest').replace(/[&<>"']/g, '') + '</b><span>' + Number(s.highestMissionCompleted || s.level || 0) + '</span><span>' + Number(s.totalKills || s.kills || 0).toLocaleString() + '</span></div>';
-    }).join('') : '<p class="armory-note">No completed runs yet. Be the first on the board.</p>';
+    }).join('') : '<p class="armory-note">No scores are stored online yet. Finish a mission, reach game over, or quit after earning progress to submit your score.</p>';
   });
 }
 function submitRun() {
   if (!window.TankShotScores) return;
+  if (!save.highestMissionCompleted && !save.totalKills) return;
   const name = (currentProfile || 'Guest').trim().slice(0, 16) || 'Guest';
   TankShotScores.submit({ name, highestMissionCompleted: save.highestMissionCompleted, totalKills: save.totalKills,
     level: save.highestMissionCompleted, shots: runStats.shots, kills: save.totalKills,
@@ -1631,7 +1632,7 @@ function toggleMute() { muted = !muted; $('bMute').textContent = muted ? 'Sound 
 $('bMute').addEventListener('click', toggleMute);
 $('bPause').addEventListener('click', () => { togglePause(); });
 $('bResume').addEventListener('click', () => togglePause());
-$('bQuit').addEventListener('click', () => { cfg = null; tanks = []; grid = null; showTitle(); });
+$('bQuit').addEventListener('click', () => { submitRun(); cfg = null; tanks = []; grid = null; showTitle(); });
 $('bPlay').addEventListener('click', () => {
   if (!currentProfile || !profileDb.list[currentProfile]) { showProfiles(); return; }
   actx(); startSession(startM);
@@ -1689,7 +1690,7 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=27"></script>
+<script src="version-check.js?v=28"></script>
 
 </body></html>
 
