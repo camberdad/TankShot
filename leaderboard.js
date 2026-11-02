@@ -10,9 +10,11 @@
   var headers = { 'Content-Type': 'application/json', 'X-Bin-Meta': 'false', 'X-Master-Key': MASTER_KEY };
 
   function clean(row) {
+    var mission = Math.max(0, Math.min(100, Math.floor(Number(row.highestMissionCompleted != null ? row.highestMissionCompleted : row.level) || 0)));
+    var kills = Math.max(0, Math.floor(Number(row.totalKills != null ? row.totalKills : row.kills) || 0));
     return { game: 'TankShot', name: String(row.name || 'Guest').trim().slice(0, 16) || 'Guest',
-      level: Math.max(1, Math.min(100, Math.floor(Number(row.level) || 1))),
-      shots: Math.max(0, Math.floor(Number(row.shots) || 0)), kills: Math.max(0, Math.floor(Number(row.kills) || 0)),
+      highestMissionCompleted: mission, totalKills: kills,
+      level: mission, shots: Math.max(0, Math.floor(Number(row.shots) || 0)), kills: kills,
       score: Math.max(0, Math.floor(Number(row.score) || 0)), t: Number(row.t) || Date.now() };
   }
   function cached() { try { var x = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{"scores":[]}'); return Array.isArray(x.scores) ? x.scores : []; } catch (e) { return []; } }
@@ -21,10 +23,16 @@
     var best = Object.create(null);
     rows.map(clean).forEach(function (r) {
       var k = r.name.toLowerCase(), old = best[k];
-      if (!old || r.score > old.score || (r.score === old.score && r.level > old.level)) best[k] = r;
-      else { old.level = Math.max(old.level, r.level); old.kills = Math.max(old.kills, r.kills); }
+      if (!old) best[k] = r;
+      else {
+        var mission = Math.max(old.highestMissionCompleted, r.highestMissionCompleted);
+        var kills = Math.max(old.totalKills, r.totalKills);
+        var chosen = r.score > old.score || (r.score === old.score && r.level > old.level) ? r : old;
+        chosen.highestMissionCompleted = mission; chosen.totalKills = kills; chosen.level = mission; chosen.kills = kills;
+        best[k] = chosen;
+      }
     });
-    return Object.keys(best).map(function (k) { return best[k]; }).sort(function (a, b) { return b.score - a.score || b.level - a.level || b.kills - a.kills; });
+    return Object.keys(best).map(function (k) { return best[k]; }).sort(function (a, b) { return b.score - a.score || b.highestMissionCompleted - a.highestMissionCompleted || b.totalKills - a.totalKills; });
   }
   function readRemote() {
     if (!BIN_ID || !MASTER_KEY) return Promise.reject(new Error('offline'));
