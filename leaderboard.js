@@ -45,6 +45,14 @@
     readRemote().then(function (data) { var gameRows = rank(data.scores.concat(local)); saveLocal(gameRows); cb(gameRows, true); })
       .catch(function () { cb(local, false); });
   }
+  function checkUsername(name, cb) {
+    var wanted = String(name || '').trim().toLowerCase();
+    if (!wanted) { cb({ available: false, online: true }); return; }
+    readRemote().then(function (data) {
+      var taken = data.scores.some(function (row) { return String(row.name || '').trim().toLowerCase() === wanted; });
+      cb({ available: !taken, online: true });
+    }).catch(function () { cb({ available: false, online: false }); });
+  }
   function submit(entry) {
     var row = clean(entry), local = rank(cached().concat([row])); saveLocal(local);
     readRemote().then(function (data) {
@@ -52,6 +60,6 @@
       return fetch(URL, { method: 'PUT', headers: headers, body: JSON.stringify({ scores: merged }) }).then(function (r) { if (!r.ok) throw new Error('http ' + r.status); saveLocal(merged); });
     }).catch(function () {});
   }
-  window.TankShotScores = { fetch: fetchScores, submit: submit, configured: !!(BIN_ID && ACCESS_KEY) };
+  window.TankShotScores = { fetch: fetchScores, submit: submit, checkUsername: checkUsername, configured: !!(BIN_ID && ACCESS_KEY) };
 })();
 
