@@ -581,7 +581,7 @@ const SFX = {
 function sfx(n) { try { if (SFX[n]) SFX[n](); } catch (e) {} }
 
 /* ================= game state ================= */
-const G = { state: 'title', mission: 1, lives: 3, timer: 0, shake: 0, note: '', after: 'next', afterMission: 0 };
+const G = { state: 'title', mission: 1, lives: 3, timer: 0, shake: 0, shakePhase: 0, note: '', after: 'next', afterMission: 0 };
 let cfg = null, grid = null, tanks = [], bullets = [], mines = [], booms = [], parts = [], coinFloats = [], player = null;
 const keys = {}; const aim = { x: W / 2, y: 200 }; let mouseDown = false, aimSeen = false;
 const stick = { x: 0, y: 0, on: false };
@@ -881,7 +881,7 @@ function killTank(t) {
   if (t.isPlayer && G.state !== 'play') return;
   t.alive = false;
   burst(t.x, t.y, 26, ['#ffcf5a', '#ff8a3c', '#3a3a3a', '#d9d9d9'], 190, .8, 4);
-  scorch(t.x, t.y, 24, .55); sfx('pop'); G.shake = Math.max(G.shake, 6);
+  scorch(t.x, t.y, 24, .55); sfx('pop'); if (save.settings.shake) G.shake = Math.max(G.shake, 6);
   if (t.isPlayer) playerDown(); else { cfg.dead.add(t.idx); if (G.state === 'play') { runStats.kills++; save.bestKills = Math.max(save.bestKills || 0, runStats.kills); persist(); } gainCoins(25, t.x, t.y); }
   updHud();
 }
@@ -1111,6 +1111,7 @@ function updateMines(dt) {
   }
 }
 function updateFx(dt) {
+  G.shakePhase += dt;
   for (const b of booms) b.t += dt; booms = booms.filter(b => b.t < .7);
   for (const p of parts) { p.l -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .94; p.vy *= .94; }
   parts = parts.filter(p => p.l > 0);
@@ -1246,7 +1247,11 @@ function drawMine(m) {
 function render() {
   ctx.setTransform(S, 0, 0, S, 0, 0); ctx.clearRect(0, 0, W, H);
   if (!grid) return;
-  let sx = 0, sy = 0; if (G.shake > 0 && !REDUCED) { sx = (Math.random() - .5) * G.shake; sy = (Math.random() - .5) * G.shake; }
+  let sx = 0, sy = 0;
+  if (G.shake > 0 && !REDUCED && save.settings.shake) {
+    sx = Math.sin(G.shakePhase * 30) * G.shake;
+    sy = Math.sin(G.shakePhase * 38 + .8) * G.shake * .62;
+  }
   ctx.save(); ctx.translate(sx, sy);
   ctx.drawImage(floorL.c, 0, 0, W, H); ctx.drawImage(trackL.c, 0, 0, W, H);
   const rows = []; for (let i = 0; i < ROWS; i++) rows.push([]);
