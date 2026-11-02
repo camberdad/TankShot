@@ -60,7 +60,7 @@ body {
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.small { padding: 6px 12px; font-size: 14px; }
 .btn:focus-visible, .step button:focus-visible { outline: 3px solid #8fbcff; outline-offset: 2px; }
-.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=14') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
+.stage { position: relative; display: flex; flex: 1 1 auto; min-height: 0; align-items: center; justify-content: center; border: 3px solid var(--line); background: #0b0d10 url('assets/tankshot-menu.jpg?v=15') center / cover no-repeat; border-radius: 6px; overflow: hidden; }
 canvas { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; touch-action: none; user-select: none; -webkit-user-select: none; }
 canvas.playing { cursor: none; }
 .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(10,12,16,.82); padding: 16px; text-align: center; overflow: auto; }
@@ -108,10 +108,6 @@ canvas.playing { cursor: none; }
 .settings-panel { max-width: 540px; }
 .setting-row { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:14px 4px; border-bottom:1px solid var(--line); font-size:19px; }
 .setting-row select { min-width:150px; padding:8px; color:var(--ink); background:var(--panel-2); border:1px solid var(--line); border-radius:4px; font:inherit; }
-.score-board { display:grid; gap:8px; margin:16px 0; max-height:55vh; overflow:auto; }
-.score-row { display:grid; grid-template-columns:36px minmax(80px,1fr) repeat(3,minmax(70px,auto)); gap:10px; align-items:center; padding:10px; border:1px solid var(--line); border-radius:5px; background:var(--panel-2); font-size:16px; }
-.score-row b { color:var(--accent); }
-.score-head { color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
 .version-badge { align-self:center; color:var(--muted); font-size:10px; letter-spacing:.08em; padding:3px 5px; border:1px solid var(--line); border-radius:4px; }
 .gameUpdateNotice { position: fixed; z-index: 9999; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(360px, calc(100vw - 36px)); box-sizing: border-box; padding: 22px 24px; border: 1px solid rgba(255,182,41,.75); border-radius: 12px; background: rgba(18,14,10,.97); color: var(--ink); box-shadow: 0 12px 44px rgba(0,0,0,.72); font: 14px var(--font-body); text-align: center; }
 .updateTitle { margin-bottom: 16px; color: var(--accent); font-size: 20px; font-weight: 700; }
@@ -132,8 +128,6 @@ canvas.playing { cursor: none; }
   .v { font-size: 19px; }
   .armory-grid { grid-template-columns: 1fr; }
   .armory-card { padding: 10px; }
-  .score-row { grid-template-columns:24px minmax(54px,1fr) repeat(3,minmax(44px,auto)); gap:5px; padding:8px 5px; font-size:13px; }
-  .score-head { font-size:10px; }
 }
 </style>
 
@@ -151,7 +145,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 14">V14</span>
+      <span class="version-badge" title="Game version 15">V15</span>
     </div>
   </header>
 
@@ -159,13 +153,12 @@ canvas.playing { cursor: none; }
     <canvas id="cv"></canvas>
 
     <div class="overlay" id="ovTitle">
-      <img class="logo-image" src="assets/tankshot-logo.svg?v=14" alt="TankShot">
+      <img class="logo-image" src="assets/tankshot-logo.svg?v=15" alt="TankShot">
       <p class="tag">One hit ends you. Bounce shots off the blocks, lay mines at the chokepoints and clear every arena.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
         <button class="btn" id="bArmory" type="button">Armory</button>
         <button class="btn" id="bSettings" type="button">Settings</button>
-        <button class="btn" id="bScores" type="button">High Scores</button>
         <div class="step" id="stepWrap" hidden>
           <span>Start at mission</span>
           <button id="stDec" type="button" aria-label="Earlier mission">&lsaquo;</button>
@@ -205,14 +198,6 @@ canvas.playing { cursor: none; }
         <div class="setting-row"><label for="setHandling">Tank handling</label><select id="setHandling"><option value="arcade">Arcade</option><option value="precise">Precise</option></select></div>
         <div class="setting-row"><label for="setShake">Screen shake</label><input id="setShake" type="checkbox"></div>
         <div class="setting-row"><label for="setParticles">Explosion effects</label><select id="setParticles"><option value="high">High</option><option value="low">Low</option></select></div>
-      </section>
-    </div>
-
-    <div class="overlay armory-overlay" id="ovScores" hidden>
-      <section class="armory-panel scores-panel">
-        <header class="armory-head"><div><h2 class="h2">High Scores</h2><p class="armory-balance" id="scoreStatus">Connecting…</p></div><button class="btn small" id="bScoresBack" type="button">Back</button></header>
-        <div id="scoreBoard" class="score-board"></div>
-        <button class="btn small" id="bScoresRefresh" type="button">Refresh</button>
       </section>
     </div>
 
@@ -673,7 +658,7 @@ function placeCoinCrates() {
 }
 
 /* ================= HUD & overlays ================= */
-const OVS = ['ovTitle', 'ovArmory', 'ovSettings', 'ovScores', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
+const OVS = ['ovTitle', 'ovArmory', 'ovSettings', 'ovBrief', 'ovPause', 'ovOver', 'ovMedal', 'ovWin'];
 function setOv(name) { for (const id of OVS) $(id).hidden = (id !== name); }
 function enemiesLeft() { let n = 0; for (const t of tanks) if (!t.isPlayer && t.alive) n++; return n; }
 function ammoFor(id) { return AMMO.find(a => a.id === id) || AMMO[0]; }
@@ -705,25 +690,6 @@ function openSettings() {
   setOv('ovSettings');
 }
 function saveSetting(key, value) { save.settings[key] = value; persist(); }
-function renderScores() {
-  $('scoreStatus').textContent = 'Loading leaderboard…';
-  $('scoreBoard').innerHTML = '';
-  if (!window.TankShotScores) { $('scoreStatus').textContent = 'Offline scores'; return; }
-  TankShotScores.fetch(function (scores, online) {
-    $('scoreStatus').textContent = online ? 'JSONBin · Live' : 'Offline · device scores';
-    const list = scores.slice(0, 10);
-    $('scoreBoard').innerHTML = list.length ? '<div class="score-row score-head"><span>#</span><span>Player</span><span>Best Mission</span><span>Shots</span><span>Total Defeats</span></div>' + list.map(function (s, i) {
-      return '<div class="score-row"><span>' + (i + 1) + '</span><b>' + String(s.name || 'Guest').replace(/[&<>"']/g, '') + '</b><span>' + Number(s.highestMissionCompleted || s.level || 0) + '</span><span>' + Number(s.shots || 0).toLocaleString() + '</span><span>' + Number(s.totalKills || s.kills || 0).toLocaleString() + '</span></div>';
-    }).join('') : '<p class="armory-note">No completed runs yet. Be the first on the board.</p>';
-  });
-}
-function submitRun() {
-  if (!window.TankShotScores) return;
-  const name = (localStorage.getItem('tankshot.playerName') || window.prompt('Name for the high score board?') || 'Guest').trim().slice(0, 16) || 'Guest';
-  try { localStorage.setItem('tankshot.playerName', name); } catch (e) {}
-  const mission = save.highestMissionCompleted, kills = save.totalKills;
-  TankShotScores.submit({ name, highestMissionCompleted: mission, totalKills: kills, level: mission, shots: runStats.shots, kills, score: kills * 100 + mission * 500 });
-}
 function buyOrEquipAmmo(id) {
   const a = ammoFor(id); if (!AMMO.some(x => x.id === id)) return;
   if (!save.ammoUnlocked.includes(id)) {
@@ -797,7 +763,7 @@ function playerDown() { G.state = 'dead'; G.timer = 1.9; cv.classList.remove('pl
 function afterDeath() {
   if (G.lives <= 1) {
     G.lives = 0; updHud(); G.state = 'over';
-    $('ovOverText').textContent = 'Your tank was destroyed on mission ' + G.mission + '. Start again from the title screen.'; runStats.level = Math.max(runStats.level, G.mission); save.bestLevel = Math.max(save.bestLevel || 1, runStats.level); persist(); submitRun();
+    $('ovOverText').textContent = 'Your tank was destroyed on mission ' + G.mission + '. Start again from the title screen.'; runStats.level = Math.max(runStats.level, G.mission); save.bestLevel = Math.max(save.bestLevel || 1, runStats.level); persist();
     setOv('ovOver');
   } else { G.lives--; resetArena(); beginBrief(true); }
 }
@@ -810,8 +776,8 @@ function completeMission() {
   else if (m === 10 && !save.silver) { save.silver = 1; ev = 'silver'; }
   else if (m === 20 && !save.gold) { save.gold = 1; save.unlocked = 1; save.max = Math.max(save.max, 21); ev = 'gold'; end = true; }
   if (m > 30) { save.plat++; G.note = (G.note ? G.note + '. ' : '') + 'Platinum medal earned'; }
-  persist(); updHud(); submitRun();
-  if (m >= 100) { G.state = 'win'; save.bestLevel = 100; persist(); submitRun(); setOv('ovWin'); return; }
+  persist(); updHud();
+  if (m >= 100) { G.state = 'win'; save.bestLevel = 100; persist(); setOv('ovWin'); return; }
   if (ev) { showMedal(ev, m, end); return; }
   enterMission(m + 1);
 }
@@ -1355,10 +1321,7 @@ $('bQuit').addEventListener('click', () => { cfg = null; tanks = []; grid = null
 $('bPlay').addEventListener('click', () => { actx(); startSession(startM); });
 $('bArmory').addEventListener('click', openArmory);
 $('bSettings')?.addEventListener('click', openSettings);
-$('bScores')?.addEventListener('click', () => { renderScores(); setOv('ovScores'); });
 $('bSettingsBack')?.addEventListener('click', showTitle);
-$('bScoresBack')?.addEventListener('click', showTitle);
-$('bScoresRefresh')?.addEventListener('click', renderScores);
 $('setFps')?.addEventListener('change', e => saveSetting('fps', e.target.value));
 $('setDifficulty')?.addEventListener('change', e => saveSetting('difficulty', e.target.value));
 $('setHandling')?.addEventListener('change', e => saveSetting('handling', e.target.value));
@@ -1402,9 +1365,7 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="leaderboard-config.js?v=14"></script>
-<script src="leaderboard.js?v=14"></script>
-<script src="version-check.js?v=14"></script>
+<script src="version-check.js?v=15"></script>
 
 </body></html>
 
