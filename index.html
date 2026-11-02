@@ -182,7 +182,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 24">V24</span>
+      <span class="version-badge" title="Game version 25">V25</span>
     </div>
   </header>
 
@@ -222,9 +222,10 @@ canvas.playing { cursor: none; }
     <div class="overlay armory-overlay" id="ovProfiles" hidden>
       <section class="armory-panel profile-panel">
         <header class="armory-head"><h2 class="h2">Choose Player</h2><button class="btn small" id="bProfilesBack" type="button">Back</button></header>
-        <p class="armory-note">Select a saved account or create a new name. Each player keeps their own missions, coins, and unlocks on this device.</p>
+        <p class="armory-note">Choose a unique username for the highscores, or select your saved username to continue.</p>
         <div class="profile-list" id="profileList"></div>
         <div class="profile-create"><input id="newProfileName" maxlength="16" autocomplete="off" placeholder="Enter player name"><button class="btn primary" id="newProfileBtn" type="button">New Player</button></div>
+        <p class="armory-note" id="profileNameStatus" role="status" aria-live="polite">Use 3–16 letters, numbers, or underscores. New names are checked against the online leaderboard.</p>
       </section>
     </div>
     <div class="game-toast" id="gameToast" hidden></div>
@@ -302,8 +303,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=24"></script>
-<script src="leaderboard.js?v=24"></script>
+<script src="leaderboard-config.js?v=25"></script>
+<script src="leaderboard.js?v=25"></script>
 <script>
 (function () {
 'use strict';
@@ -598,7 +599,7 @@ const AMMO = [
   { id: 'cluster', name: 'Cluster Bomb', short: 'CLST', shape: 'cluster', tier: 3, cost: 6200, speed: 250, bounce: 0, pierce: 0, radius: 126, color: '#ff795b', desc: 'Splits into explosive mini-shells on impact.' },
   { id: 'rail', name: 'Rail Cannon', short: 'RAIL', shape: 'beam', tier: 3, cost: 8500, speed: 680, bounce: 0, pierce: 99, radius: 0, color: '#8fffd5', desc: 'A piercing beam that cuts through every tank in its path.' }
 ];
-const DEFAULT_SAVE = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, highestMissionCompleted: 0, totalKills: 0, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', ammoLevels: { standard: 1 }, eliteDefeated: [], settings: { fps: '60', difficulty: 'normal', handling: 'arcade', shake: true, particles: 'high' } };
+const DEFAULT_SAVE = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, highestMissionCompleted: 0, totalKills: 0, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', ammoLevels: { standard: 1 }, eliteDefeated: [], settings: { fps: '60', difficulty: 'normal', handling: 'arcade', shake: false, particles: 'high' } };
 let save = Object.assign({}, DEFAULT_SAVE, { ammoUnlocked: ['standard'], eliteDefeated: [], settings: Object.assign({}, DEFAULT_SAVE.settings) });
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && typeof s === 'object') save = Object.assign(save, s); } catch (e) {}
 function normalizeSave(value) {
@@ -621,6 +622,7 @@ function normalizeSave(value) {
 }
 save = normalizeSave(save);
 const PROFILE_DB_KEY = 'tankshot.profiles.v1';
+const SHAKE_DEFAULT_MIGRATION_KEY = 'tankshot.shake-default-off.v1';
 let profileDb = { current: '', list: {} }, currentProfile = '';
 try { const data = JSON.parse(localStorage.getItem(PROFILE_DB_KEY) || '{}'); if (data && data.list && typeof data.list === 'object') profileDb = data; } catch (e) {}
 if (!Object.keys(profileDb.list).length) {
@@ -632,6 +634,20 @@ if (!Object.keys(profileDb.list).length) {
     profileDb.current = initialName;
   }
 }
+try {
+  if (localStorage.getItem(SHAKE_DEFAULT_MIGRATION_KEY) !== '1') {
+    save.settings.shake = false;
+    Object.keys(profileDb.list).forEach(name => {
+      const profile = profileDb.list[name];
+      if (profile && typeof profile === 'object') {
+        profile.settings = Object.assign({}, profile.settings || {}, { shake: false });
+      }
+    });
+    localStorage.setItem(SHAKE_DEFAULT_MIGRATION_KEY, '1');
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    localStorage.setItem(PROFILE_DB_KEY, JSON.stringify(profileDb));
+  }
+} catch (e) {}
 currentProfile = profileDb.current && profileDb.list[profileDb.current] ? profileDb.current : '';
 if (currentProfile) save = normalizeSave(profileDb.list[currentProfile]);
 let runStats = { shots: 0, kills: 0, level: 1 };
@@ -944,6 +960,7 @@ function showProfiles() {
     button.append(label, stats); button.addEventListener('click', () => selectProfile(name)); list.appendChild(button);
   }
   $('newProfileName').value = '';
+  $('profileNameStatus').textContent = 'Use 3–16 letters, numbers, or underscores. New names are checked against the online leaderboard.';
   $('newProfileName').focus();
 }
 function selectProfile(name) {
@@ -953,10 +970,18 @@ function selectProfile(name) {
 }
 function createProfile() {
   const input = $('newProfileName'), name = input.value.trim().slice(0, 16);
-  if (!name) { input.focus(); return; }
-  const existing = Object.keys(profileDb.list).find(n => n.toLowerCase() === name.toLowerCase());
-  if (existing) { selectProfile(existing); return; }
-  profileDb.list[name] = normalizeSave({}); selectProfile(name);
+  const status = $('profileNameStatus'), button = $('newProfileBtn');
+  if (!name) { status.textContent = 'Enter a username before continuing.'; input.focus(); return; }
+  if (!/^[a-z0-9_]{3,16}$/i.test(name)) { status.textContent = 'Use 3–16 letters, numbers, or underscores.'; input.focus(); return; }
+  if (Object.keys(profileDb.list).some(n => n.toLowerCase() === name.toLowerCase())) { status.textContent = 'That username is already saved here. Select it from the list above.'; input.focus(); return; }
+  if (!window.TankShotScores || !TankShotScores.checkUsername) { status.textContent = 'The online leaderboard is unavailable, so this username cannot be checked.'; return; }
+  status.textContent = 'Checking username…'; button.disabled = true;
+  TankShotScores.checkUsername(name, function (result) {
+    button.disabled = false;
+    if (!result.online) { status.textContent = 'Could not check the online leaderboard. Please try again before playing.'; return; }
+    if (!result.available) { status.textContent = 'That username is already in use. Please choose another.'; input.focus(); return; }
+    profileDb.list[name] = normalizeSave({}); selectProfile(name);
+  });
 }
 let toastTimer = 0;
 function flashToast(message) {
@@ -1579,7 +1604,10 @@ $('bMute').addEventListener('click', toggleMute);
 $('bPause').addEventListener('click', () => { togglePause(); });
 $('bResume').addEventListener('click', () => togglePause());
 $('bQuit').addEventListener('click', () => { cfg = null; tanks = []; grid = null; showTitle(); });
-$('bPlay').addEventListener('click', () => { actx(); startSession(startM); });
+$('bPlay').addEventListener('click', () => {
+  if (!currentProfile || !profileDb.list[currentProfile]) { showProfiles(); return; }
+  actx(); startSession(startM);
+});
 $('bArmory').addEventListener('click', openArmory);
 $('bSettings')?.addEventListener('click', openSettings);
 $('bProfiles')?.addEventListener('click', showProfiles);
@@ -1633,7 +1661,7 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=24"></script>
+<script src="version-check.js?v=25"></script>
 
 </body></html>
 
