@@ -187,7 +187,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 32">V32</span>
+      <span class="version-badge" title="Game version 33">V33</span>
     </div>
   </header>
 
@@ -318,8 +318,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=32"></script>
-<script src="leaderboard.js?v=32"></script>
+<script src="leaderboard-config.js?v=33"></script>
+<script src="leaderboard.js?v=33"></script>
 <script>
 (function () {
 'use strict';
@@ -1523,6 +1523,47 @@ function drawBlock(c, r, t) {
   }
   ctx.fillStyle = 'rgba(0,0,0,.32)'; ctx.fillRect(x + 1, y + TS - lift, TS - 1, 2);
 }
+function drawPlayerHull() {
+  for (const side of [-1, 1]) {
+    const sy = side * 1;
+    const armor = ctx.createLinearGradient(-12, side * 11, 10, side * 18);
+    armor.addColorStop(0, '#74f2ff'); armor.addColorStop(.24, '#1b718c'); armor.addColorStop(1, '#122733');
+    ctx.fillStyle = armor; ctx.strokeStyle = '#071820'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(-13, 9 * sy); ctx.lineTo(8, 10 * sy); ctx.lineTo(16, 15 * sy); ctx.lineTo(12, 18 * sy); ctx.lineTo(-11, 16 * sy); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#91f7ff'; ctx.lineWidth = 1.2; ctx.shadowColor = '#35dfff'; ctx.shadowBlur = 5;
+    ctx.beginPath(); ctx.moveTo(-8, 12.5 * sy); ctx.lineTo(7, 13 * sy); ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.fillStyle = '#c4ffff'; ctx.beginPath(); ctx.arc(-10, 12.5 * sy, 1.25, 0, TAU); ctx.fill();
+  }
+  const hull = ctx.createLinearGradient(-16, -12, 19, 12);
+  hull.addColorStop(0, '#a6f8ff'); hull.addColorStop(.22, '#52b8d4'); hull.addColorStop(.56, '#24708d'); hull.addColorStop(1, '#102f46');
+  ctx.fillStyle = hull; ctx.strokeStyle = '#081a29'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(-16, -8); ctx.lineTo(-10, -12); ctx.lineTo(8, -12); ctx.lineTo(14, -9); ctx.lineTo(19, -3); ctx.lineTo(19, 3); ctx.lineTo(14, 9); ctx.lineTo(8, 12); ctx.lineTo(-10, 12); ctx.lineTo(-16, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = '#b4fbff'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-9, -9); ctx.lineTo(7, -9); ctx.lineTo(15, -4); ctx.moveTo(-9, 9); ctx.lineTo(7, 9); ctx.lineTo(15, 4); ctx.stroke();
+  ctx.fillStyle = '#102c3d'; ctx.beginPath(); ctx.moveTo(-5, -6); ctx.lineTo(8, -6); ctx.lineTo(14, 0); ctx.lineTo(8, 6); ctx.lineTo(-5, 6); ctx.lineTo(-10, 0); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#67f3ff'; ctx.shadowColor = '#29dfff'; ctx.shadowBlur = 9; ctx.beginPath(); ctx.arc(2, 0, 3.3, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
+  for (const sy of [-1, 1]) {
+    ctx.fillStyle = '#e2ffff'; ctx.shadowColor = '#4aeaff'; ctx.shadowBlur = 7;
+    ctx.beginPath(); ctx.moveTo(14, 5 * sy); ctx.lineTo(19, 3 * sy); ctx.lineTo(16, 8 * sy); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
+  }
+  ctx.fillStyle = '#10212c'; ctx.fillRect(-14, -4, 4, 2); ctx.fillRect(-14, 2, 4, 2);
+}
+function drawPlayerTurret(cf, recoil) {
+  const shell = ctx.createLinearGradient(0, -12, 0, 12);
+  shell.addColorStop(0, '#a8fbff'); shell.addColorStop(.35, '#38a9ca'); shell.addColorStop(1, '#12506d');
+  ctx.fillStyle = '#092332'; ctx.strokeStyle = '#071923'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-10, -8); ctx.lineTo(-5, -12); ctx.lineTo(6, -12); ctx.lineTo(11, -7); ctx.lineTo(12, 0); ctx.lineTo(8, 10); ctx.lineTo(-7, 10); ctx.lineTo(-12, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = shell; ctx.strokeStyle = '#81f1ff'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(-8, -7); ctx.lineTo(-4, -10); ctx.lineTo(5, -10); ctx.lineTo(9, -6); ctx.lineTo(10, 0); ctx.lineTo(6, 7); ctx.lineTo(-6, 7); ctx.lineTo(-9, 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#0b2b3d'; ctx.beginPath(); ctx.arc(0, 0, 5.1, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#8effff'; ctx.shadowColor = '#32e6ff'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(0, 0, 2.7, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = '#d5ffff'; ctx.fillRect(-4 - recoil, -11, 3, 1.4); ctx.fillRect(2 - recoil, -11, 3, 1.4);
+  ctx.fillStyle = '#102632'; ctx.fillRect(2 - recoil, -4.8, 28, 9.6);
+  const barrel = ctx.createLinearGradient(0, -4, 0, 4); barrel.addColorStop(0, '#9effff'); barrel.addColorStop(.3, '#2caac7'); barrel.addColorStop(.7, '#14627e'); barrel.addColorStop(1, '#0b3148');
+  ctx.fillStyle = barrel; ctx.fillRect(4 - recoil, -3.2, 23, 6.4);
+  ctx.fillStyle = '#e0ffff'; ctx.fillRect(8 - recoil, -2.7, 12, 1.1);
+  ctx.fillStyle = '#092130'; ctx.fillRect(23 - recoil, -5, 5, 10);
+  ctx.fillStyle = '#78f4ff'; ctx.fillRect(24 - recoil, -3.4, 2, 6.8);
+}
 function drawTank(t) {
   const cf = t.isPlayer ? PL : TYPES[t.type];
   const x = t.x, y = t.y + OY;
@@ -1542,37 +1583,43 @@ function drawTank(t) {
   ctx.strokeStyle = '#0c0f13'; ctx.lineWidth = 1.4; ctx.strokeRect(-17.5, -15.5, 35, 8); ctx.strokeRect(-17.5, 7.5, 35, 8);
   const off = ((t.tread % 6) + 6) % 6;
   for (let i = -16 + off; i < 17; i += 6) {
-    ctx.fillStyle = '#72777a'; ctx.fillRect(i, -15, 2.3, 7); ctx.fillRect(i, 8, 2.3, 7);
+    ctx.fillStyle = t.isPlayer ? '#91cdd8' : '#72777a'; ctx.fillRect(i, -15, 2.3, 7); ctx.fillRect(i, 8, 2.3, 7);
     ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(i, -15, 1, 7); ctx.fillRect(i, 8, 1, 7);
   }
-  const hull = ctx.createLinearGradient(-13, -11, 14, 12); hull.addColorStop(0, cf.lt); hull.addColorStop(.35, cf.col); hull.addColorStop(1, cf.dk);
-  ctx.fillStyle = hull; ctx.strokeStyle = '#111820'; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.moveTo(-12, -11); ctx.lineTo(9, -11); ctx.lineTo(14, -7); ctx.lineTo(14, 8); ctx.lineTo(9, 11); ctx.lineTo(-12, 11); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fillRect(-10, -9, 18, 2);
-  ctx.fillStyle = 'rgba(10,15,20,.2)'; ctx.fillRect(-10, 7, 20, 2);
-  for (const xx of [-9, -3, 3, 9]) { ctx.fillStyle = 'rgba(15,20,25,.32)'; ctx.fillRect(xx, -10, 2, 2); ctx.fillRect(xx, 8, 2, 2); }
-  if (!t.isPlayer && t.type === 10) {
-    ctx.strokeStyle = '#ffe4a0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-7, -10); ctx.lineTo(3, 10); ctx.moveTo(1, -10); ctx.lineTo(11, 8); ctx.stroke();
-  } else if (!t.isPlayer && t.type === 11) {
-    ctx.fillStyle = '#394c49'; ctx.strokeStyle = '#172320'; ctx.lineWidth = 1.5;
-    ctx.fillRect(-14, -13, 10, 5); ctx.strokeRect(-14, -13, 10, 5); ctx.fillRect(-14, 8, 10, 5); ctx.strokeRect(-14, 8, 10, 5);
-    ctx.fillStyle = '#c9dfd3'; ctx.fillRect(-11, -12, 4, 1.5); ctx.fillRect(-11, 9.5, 4, 1.5);
-  } else if (!t.isPlayer && t.type === 12) {
-    ctx.fillStyle = '#ffbc62'; ctx.fillRect(-10, -3, 5, 6); ctx.fillRect(7, -3, 5, 6);
-    ctx.fillStyle = 'rgba(255,105,44,.42)'; ctx.beginPath(); ctx.arc(-8, 0, 8, 0, TAU); ctx.fill();
+  if (t.isPlayer) drawPlayerHull();
+  else {
+    const hull = ctx.createLinearGradient(-13, -11, 14, 12); hull.addColorStop(0, cf.lt); hull.addColorStop(.35, cf.col); hull.addColorStop(1, cf.dk);
+    ctx.fillStyle = hull; ctx.strokeStyle = '#111820'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(-12, -11); ctx.lineTo(9, -11); ctx.lineTo(14, -7); ctx.lineTo(14, 8); ctx.lineTo(9, 11); ctx.lineTo(-12, 11); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fillRect(-10, -9, 18, 2);
+    ctx.fillStyle = 'rgba(10,15,20,.2)'; ctx.fillRect(-10, 7, 20, 2);
+    for (const xx of [-9, -3, 3, 9]) { ctx.fillStyle = 'rgba(15,20,25,.32)'; ctx.fillRect(xx, -10, 2, 2); ctx.fillRect(xx, 8, 2, 2); }
+    if (t.type === 10) {
+      ctx.strokeStyle = '#ffe4a0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-7, -10); ctx.lineTo(3, 10); ctx.moveTo(1, -10); ctx.lineTo(11, 8); ctx.stroke();
+    } else if (t.type === 11) {
+      ctx.fillStyle = '#394c49'; ctx.strokeStyle = '#172320'; ctx.lineWidth = 1.5;
+      ctx.fillRect(-14, -13, 10, 5); ctx.strokeRect(-14, -13, 10, 5); ctx.fillRect(-14, 8, 10, 5); ctx.strokeRect(-14, 8, 10, 5);
+      ctx.fillStyle = '#c9dfd3'; ctx.fillRect(-11, -12, 4, 1.5); ctx.fillRect(-11, 9.5, 4, 1.5);
+    } else if (t.type === 12) {
+      ctx.fillStyle = '#ffbc62'; ctx.fillRect(-10, -3, 5, 6); ctx.fillRect(7, -3, 5, 6);
+      ctx.fillStyle = 'rgba(255,105,44,.42)'; ctx.beginPath(); ctx.arc(-8, 0, 8, 0, TAU); ctx.fill();
+    }
   }
   ctx.rotate(t.tur - t.body);
   const rc = t.recoil * 4;
-  const barrel = ctx.createLinearGradient(0, -4, 0, 4); barrel.addColorStop(0, cf.lt); barrel.addColorStop(.5, cf.col); barrel.addColorStop(1, cf.dk);
-  ctx.fillStyle = '#111820'; ctx.fillRect(2 - rc, -4.3, 27, 8.6);
-  ctx.fillStyle = barrel; ctx.fillRect(3 - rc, -3, 23, 6);
-  ctx.fillStyle = 'rgba(255,255,255,.36)'; ctx.fillRect(4 - rc, -3, 18, 1.4);
-  ctx.fillStyle = '#0d1218'; ctx.fillRect(22 - rc, -4.5, 4, 9);
-  ctx.fillStyle = cf.col; ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); ctx.fill();
-  ctx.strokeStyle = '#111820'; ctx.lineWidth = 2.5; ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.arc(-2, -2, 5.5, Math.PI, TAU); ctx.stroke();
-  ctx.fillStyle = cf.dk; ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, TAU); ctx.fill();
-  ctx.fillStyle = '#d8e0e5'; ctx.beginPath(); ctx.arc(-1, -1, 1.2, 0, TAU); ctx.fill();
+  if (t.isPlayer) drawPlayerTurret(cf, rc);
+  else {
+    const barrel = ctx.createLinearGradient(0, -4, 0, 4); barrel.addColorStop(0, cf.lt); barrel.addColorStop(.5, cf.col); barrel.addColorStop(1, cf.dk);
+    ctx.fillStyle = '#111820'; ctx.fillRect(2 - rc, -4.3, 27, 8.6);
+    ctx.fillStyle = barrel; ctx.fillRect(3 - rc, -3, 23, 6);
+    ctx.fillStyle = 'rgba(255,255,255,.36)'; ctx.fillRect(4 - rc, -3, 18, 1.4);
+    ctx.fillStyle = '#0d1218'; ctx.fillRect(22 - rc, -4.5, 4, 9);
+    ctx.fillStyle = cf.col; ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#111820'; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.beginPath(); ctx.arc(-2, -2, 5.5, Math.PI, TAU); ctx.stroke();
+    ctx.fillStyle = cf.dk; ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#d8e0e5'; ctx.beginPath(); ctx.arc(-1, -1, 1.2, 0, TAU); ctx.fill();
+  }
   ctx.restore();
 }
 function drawBullet(b) {
@@ -1768,9 +1815,10 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=32"></script>
+<script src="version-check.js?v=33"></script>
 
 </body></html>
+
 
 
 

@@ -2,13 +2,13 @@
 
 TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 
-## Latest update — V32
+## Latest update — V33
 
-- Adds an Energy Shield to the Armory. Buy it with GP, activate it with right-click, and upgrade it through five levels that increase its duration.
-- Adds 50 GP for each cleared round and raises direct GP Box rewards from 50 to 60 GP. Explosive GP Box rewards rise from 35 to 40 GP.
+- Gives the player's tank a wider angular hull, side armor, a glowing reactor, and an illuminated turret that stand apart from enemy tanks.
 
 ## Previous updates
 
+- **V32 — Energy Shield and GP:** Adds a purchasable right-click Energy Shield with five duration levels, 50 GP per cleared round, and higher GP Box rewards.
 - **V31 — High Scores status:** Changes the live status label to “Updated · Live.”
 - **V30 — High Scores reliability:** Fixes JSONBin score loading when metadata is disabled, so the leaderboard reads and merges saved scores correctly after each completed mission. Shows the server error when a live read fails.
 - **V29 — Round complete screen:** Adds Continue and Back to Main Menu choices after each mission, plus a Back to Main Menu button on medal screens.
