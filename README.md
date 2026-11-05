@@ -2,11 +2,13 @@
 
 TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 
-## Latest update — V34
+## Latest update — V35
 
-- Reduces the Energy Shield cooldown from 12 seconds to 4.8 seconds.
+- Adds a Defense tab to the Armory with the Energy Shield and five different tank types. Each tank has its own appearance and can withstand one more hit per life, up to seven hits.
 
 ## Previous updates
+
+- **V34 — Shield cooldown:** Reduces the Energy Shield cooldown from 12 seconds to 4.8 seconds.
 
 - **V33 — Player tank design:** Gives the player's tank a wider angular hull, side armor, a glowing reactor, and an illuminated turret that stand apart from enemy tanks.
 - **V32 — Energy Shield and GP:** Adds a purchasable right-click Energy Shield with five duration levels, 50 GP per cleared round, and higher GP Box rewards.
@@ -16,4 +18,3 @@ TankShot is a browser tank game built with HTML, CSS, and JavaScript.
 - **V28 — Save scores when quitting:** Submits saved mission and defeat totals when quitting to title after making progress, as well as on mission completion and game over. Clarifies when a score is sent if the online leaderboard is empty.
 
 High Scores use JSONBin with the restricted `X-Access-Key` configured in `leaderboard-config.js`. Host the repository with GitHub Pages and embed its `index.html` page in your site.
-

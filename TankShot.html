@@ -110,6 +110,8 @@ canvas.playing { cursor: none; }
 .armory-balance { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
 .armory-balance b { color: #ffd36b; font-size: 20px; }
 .armory-note { margin: 12px 0; color: #c3c8d2; }
+.armory-tabs { display:flex; gap:8px; margin:10px 0; }
+.armory-tab[aria-selected="true"] { border-color:var(--accent); color:var(--accent); }
 .armory-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
 .armory-card { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: linear-gradient(145deg, #262c37, #171b22); text-align: left; }
 .armory-card.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(255,182,41,.3); }
@@ -179,7 +181,7 @@ canvas.playing { cursor: none; }
     <div class="stats">
       <div class="stat"><span class="k">Best Mission</span><span class="v" id="hMission">0</span></div>
       <div class="stat"><span class="k">Tanks Defeated</span><span class="v" id="hEnemies">0</span></div>
-      <div class="stat"><div class="health-line" id="hHealthWrap"><span class="k">Health</span><span class="health-meter" id="hHealth" role="meter" aria-label="Tank health" aria-valuemin="0" aria-valuemax="3" aria-valuenow="3"><i></i><i></i><i></i></span><span class="health-value" id="hHealthText">3/3</span></div><span class="k">Lives</span><span class="v" id="hLives"></span></div>
+      <div class="stat"><div class="health-line" id="hHealthWrap"><span class="k">Health</span><span class="health-meter" id="hHealth" role="meter" aria-label="Tank health" aria-valuemin="0" aria-valuemax="8" aria-valuenow="3"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="health-value" id="hHealthText">3/3</span></div><span class="k">Lives</span><span class="v" id="hLives"></span></div>
       <div class="stat"><span class="k">GP</span><span class="v" id="hCoins">0</span></div>
       <div class="stat"><span class="k">Ammo</span><span class="v" id="hAmmo">Shell</span></div>
       <div class="stat"><span class="k">Medals</span><span class="v" id="hMedals"></span></div>
@@ -187,7 +189,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 34">V34</span>
+      <span class="version-badge" title="Game version 35">V35</span>
     </div>
   </header>
 
@@ -243,7 +245,7 @@ canvas.playing { cursor: none; }
           <button class="btn small" id="bArmoryBack" type="button">Back</button>
         </header>
         <p class="armory-note" id="armoryNote">Unlock each projectile once, then select it before firing.</p>
-        <div class="armory-grid" id="armoryGrid"></div>
+        <nav class="armory-tabs" aria-label="Armory sections"><button class="btn small armory-tab" id="tabWeapons" type="button" aria-selected="true">Weapons</button><button class="btn small armory-tab" id="tabDefense" type="button" aria-selected="false">Defense</button></nav><div class="armory-grid" id="armoryGrid"></div><div class="armory-grid" id="defenseGrid" hidden></div>
       </section>
     </div>
 
@@ -318,8 +320,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=34"></script>
-<script src="leaderboard.js?v=34"></script>
+<script src="leaderboard-config.js?v=35"></script>
+<script src="leaderboard.js?v=35"></script>
 <script>
 (function () {
 'use strict';
@@ -614,7 +616,7 @@ const AMMO = [
   { id: 'cluster', name: 'Cluster Bomb', short: 'CLST', shape: 'cluster', tier: 3, cost: 6200, speed: 250, bounce: 0, pierce: 0, radius: 126, color: '#ff795b', desc: 'Splits into explosive mini-shells on impact.' },
   { id: 'rail', name: 'Rail Cannon', short: 'RAIL', shape: 'beam', tier: 3, cost: 8500, speed: 680, bounce: 0, pierce: 99, radius: 0, color: '#8fffd5', desc: 'A piercing beam that cuts through every tank in its path.' }
 ];
-const DEFAULT_SAVE = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, highestMissionCompleted: 0, totalKills: 0, coins: 0, shieldLevel: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', ammoLevels: { standard: 1 }, eliteDefeated: [], settings: { fps: '60', difficulty: 'normal', handling: 'arcade', shake: false, particles: 'high' } };
+const DEFAULT_SAVE = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, highestMissionCompleted: 0, totalKills: 0, coins: 0, shieldLevel: 0, tankTier: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', ammoLevels: { standard: 1 }, eliteDefeated: [], settings: { fps: '60', difficulty: 'normal', handling: 'arcade', shake: false, particles: 'high' } };
 let save = Object.assign({}, DEFAULT_SAVE, { ammoUnlocked: ['standard'], eliteDefeated: [], settings: Object.assign({}, DEFAULT_SAVE.settings) });
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && typeof s === 'object') save = Object.assign(save, s); } catch (e) {}
 function normalizeSave(value) {
@@ -628,6 +630,7 @@ function normalizeSave(value) {
     else delete next.ammoLevels[ammo.id];
   }
   next.shieldLevel = Math.max(0, Math.min(5, Math.floor(Number(next.shieldLevel) || 0)));
+  next.tankTier = Math.max(0, Math.min(4, Math.floor(Number(next.tankTier) || 0)));
   if (!Number.isFinite(next.coins) || next.coins < 0) next.coins = 0;
   next.highestMissionCompleted = Math.max(0, Math.floor(Number(next.highestMissionCompleted) || 0));
   next.totalKills = Math.max(0, Math.floor(Number(next.totalKills) || 0));
@@ -710,8 +713,18 @@ const SFX = {
 function sfx(n) { try { if (SFX[n]) SFX[n](); } catch (e) {} }
 
 /* ================= game state ================= */
-const MAX_HEALTH_PER_LIFE = 3;
-const G = { state: 'title', mission: 1, lives: 3, health: MAX_HEALTH_PER_LIFE, timer: 0, shake: 0, shakePhase: 0, note: '', after: 'next', afterMission: 0 };
+const BASE_HEALTH_PER_LIFE = 3;
+const TANKS = [
+  { name: 'Scout', cost: 0, color: '#55dff1', accent: '#b8fbff', detail: 'Compact starter tank' },
+  { name: 'Bulwark', cost: 1200, color: '#69d879', accent: '#d4ff9b', detail: 'Reinforced side plates' },
+  { name: 'Vanguard', cost: 2600, color: '#ffb347', accent: '#fff0a6', detail: 'Armored prow and turret' },
+  { name: 'Juggernaut', cost: 4800, color: '#ff6f61', accent: '#ffd0a8', detail: 'Heavy track guards' },
+  { name: 'Aegis', cost: 7600, color: '#b58cff', accent: '#e4ceff', detail: 'Elite plated chassis' }
+];
+function tankTier() { return Math.max(0, Math.min(4, Math.floor(Number(save.tankTier) || 0))); }
+function maxHealthPerLife() { return BASE_HEALTH_PER_LIFE + tankTier(); }
+let activeArmoryTab = 'weapons';
+const G = { state: 'title', mission: 1, lives: 3, health: maxHealthPerLife(), timer: 0, shake: 0, shakePhase: 0, note: '', after: 'next', afterMission: 0 };
 let cfg = null, grid = null, tanks = [], bullets = [], booms = [], parts = [], coinFloats = [], player = null;
 const keys = {}; const aim = { x: W / 2, y: 200 }; let mouseDown = false, aimSeen = false;
 let shieldTimer = 0, shieldCooldown = 0;
@@ -780,7 +793,7 @@ function stamp(t, dist) {
 function resetArena() {
   const m = cfg.map; grid = m.grid.map(r => r.slice());
   tanks = []; bullets = []; booms = []; parts = []; coinFloats = [];
-  G.health = MAX_HEALTH_PER_LIFE;
+  G.health = maxHealthPerLife();
   player = mkTank(0, m.player.c, m.player.r, true, -1); player.body = 0; tanks.push(player);
   cfg.enemies.forEach((e, i) => {
     if (cfg.dead.has(i)) return;
@@ -903,9 +916,21 @@ function renderArmory() {
       '<h3 style="color:' + (owned ? ammoColor(a.id, Math.max(1, level)) : a.color) + '">' + a.name + '</h3><p>' + a.desc + '</p><div class="ammo-meta">' + cost + '<span>' + (equipped ? 'Selected' : owned ? 'Owned' : '') + '</span></div>' + pips +
       '<div class="ammo-upgrade-effect">' + ammoUpgradeEffect(a) + '</div>' +
       '<div class="ammo-actions"><button class="btn ' + (equipped ? 'primary' : '') + ' small" type="button" data-ammo="' + a.id + '" ' + (!owned && !tierOpen ? 'disabled' : '') + '>' + action + '</button>' + upgrade + '</div></article>';
-  }).join('') + renderShieldCard();
+  }).join('');
+  $('defenseGrid').innerHTML = renderShieldCard() + renderTankCards();
+  showArmoryTab(activeArmoryTab);
 }
-function openArmory() { renderArmory(); setOv('ovArmory'); }
+function showArmoryTab(tab) { activeArmoryTab = tab === 'defense' ? 'defense' : 'weapons'; const defense = activeArmoryTab === 'defense'; $('armoryGrid').hidden = defense; $('defenseGrid').hidden = !defense; $('tabWeapons').setAttribute('aria-selected', String(!defense)); $('tabDefense').setAttribute('aria-selected', String(defense)); }
+function renderTankCards() {
+  const current = tankTier();
+  return TANKS.map((tank, index) => {
+    const owned = index <= current, next = index === current + 1, active = index === current;
+    const cost = index === 0 ? 'Included' : tank.cost.toLocaleString() + ' GP';
+    const action = active ? 'Current Tank' : owned ? 'Owned' : next ? 'Purchase' : 'Locked';
+    return '<article class="armory-card' + (active ? ' selected' : '') + '"><span class="tier-tag">Tank ' + (index + 1) + ' of 5</span><h3 style="color:' + tank.color + '">' + tank.name + '</h3><p>' + tank.detail + ' · withstands ' + (BASE_HEALTH_PER_LIFE + index) + ' hits per life.</p><div class="ammo-meta"><span class="coin-icon">' + cost + '</span><span>' + (active ? 'Equipped' : owned ? 'Purchased' : '') + '</span></div><div class="ammo-upgrade-effect">Distinct ' + tank.name.toLowerCase() + ' chassis styling</div><div class="ammo-actions"><button class="btn small" type="button" data-buy-tank="' + index + '" ' + (!next ? 'disabled' : '') + '>' + action + '</button></div></article>';
+  }).join('');
+}
+function openArmory() { renderArmory(); showArmoryTab(activeArmoryTab); setOv('ovArmory'); }
 function openSettings() {
   $('setFps').value = String(save.settings.fps);
   $('setDifficulty').value = save.settings.difficulty; $('setHandling').value = save.settings.handling;
@@ -957,6 +982,13 @@ function upgradeAmmo(id) {
   $('armoryNote').textContent = ammo.name + ' upgraded to level ' + (level + 1) + ' · ' + ammoUpgradeEffect(ammo) + '.';
   renderArmory(); updHud();
 }
+function buyTank(index) {
+  const current = tankTier(); if (index !== current + 1 || !TANKS[index]) return;
+  const tank = TANKS[index];
+  if (save.coins < tank.cost) { $('armoryNote').textContent = 'You need ' + (tank.cost - save.coins).toLocaleString() + ' more GP for the ' + tank.name + '.'; return; }
+  save.coins -= tank.cost; save.tankTier = index; G.health = maxHealthPerLife(); persist();
+  $('armoryNote').textContent = tank.name + ' purchased · new tank appearance · ' + maxHealthPerLife() + ' hits per life.'; renderArmory(); updHud();
+}
 function buyShield() {
   if (shieldLevel()) return;
   if (save.coins < SHIELD_UNLOCK_COST) { $('armoryNote').textContent = 'You need ' + (SHIELD_UNLOCK_COST - save.coins).toLocaleString() + ' more GP to unlock the shield.'; return; }
@@ -977,11 +1009,12 @@ function updHud() {
   $('hMission').textContent = save.highestMissionCompleted;
   $('hEnemies').textContent = save.totalKills.toLocaleString();
   $('hLives').innerHTML = G.state === 'title' ? '' : '<i class="life"></i>'.repeat(Math.max(0, G.lives));
-  const health = clamp(G.health, 0, MAX_HEALTH_PER_LIFE);
-  $('hHealthText').textContent = health + '/' + MAX_HEALTH_PER_LIFE;
+  const maxHealth = maxHealthPerLife(), health = clamp(G.health, 0, maxHealth);
+  $('hHealthText').textContent = health + '/' + maxHealth;
+  $('hHealth').setAttribute('aria-valuemax', String(maxHealth));
   $('hHealth').setAttribute('aria-valuenow', String(health));
   $('hHealthWrap').hidden = G.state === 'title';
-  Array.from($('hHealth').children).forEach((segment, index) => segment.classList.toggle('spent', index >= health));
+  Array.from($('hHealth').children).forEach((segment, index) => { segment.hidden = index >= maxHealth; segment.classList.toggle('spent', index >= health); });
   updateWallet();
   renderAmmoBar();
   $('hMedals').innerHTML =
@@ -1076,7 +1109,7 @@ function startSession(m) {
   runStats = { shots: 0, kills: 0, level: m };
   SEED = (Math.random() * 1e9) | 0;
   shieldTimer = 0; shieldCooldown = 0;
-  G.lives = 3; G.health = MAX_HEALTH_PER_LIFE; G.note = ''; enterMission(m);
+  G.lives = 3; G.health = maxHealthPerLife(); G.note = ''; enterMission(m);
 }
 function enterMission(m) {
   G.mission = m; runStats.level = Math.max(runStats.level, m); cfg = buildCfg(m);
@@ -1524,38 +1557,44 @@ function drawBlock(c, r, t) {
   ctx.fillStyle = 'rgba(0,0,0,.32)'; ctx.fillRect(x + 1, y + TS - lift, TS - 1, 2);
 }
 function drawPlayerHull() {
+  const model = TANKS[tankTier()];
   for (const side of [-1, 1]) {
     const sy = side * 1;
     const armor = ctx.createLinearGradient(-12, side * 11, 10, side * 18);
-    armor.addColorStop(0, '#74f2ff'); armor.addColorStop(.24, '#1b718c'); armor.addColorStop(1, '#122733');
+    armor.addColorStop(0, model.accent); armor.addColorStop(.24, model.color); armor.addColorStop(1, '#122733');
     ctx.fillStyle = armor; ctx.strokeStyle = '#071820'; ctx.lineWidth = 1.6;
     ctx.beginPath(); ctx.moveTo(-13, 9 * sy); ctx.lineTo(8, 10 * sy); ctx.lineTo(16, 15 * sy); ctx.lineTo(12, 18 * sy); ctx.lineTo(-11, 16 * sy); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = '#91f7ff'; ctx.lineWidth = 1.2; ctx.shadowColor = '#35dfff'; ctx.shadowBlur = 5;
+    ctx.strokeStyle = model.accent; ctx.lineWidth = 1.2; ctx.shadowColor = model.color; ctx.shadowBlur = 5;
     ctx.beginPath(); ctx.moveTo(-8, 12.5 * sy); ctx.lineTo(7, 13 * sy); ctx.stroke(); ctx.shadowBlur = 0;
-    ctx.fillStyle = '#c4ffff'; ctx.beginPath(); ctx.arc(-10, 12.5 * sy, 1.25, 0, TAU); ctx.fill();
+    ctx.fillStyle = model.accent; ctx.beginPath(); ctx.arc(-10, 12.5 * sy, 1.25, 0, TAU); ctx.fill();
   }
   const hull = ctx.createLinearGradient(-16, -12, 19, 12);
-  hull.addColorStop(0, '#a6f8ff'); hull.addColorStop(.22, '#52b8d4'); hull.addColorStop(.56, '#24708d'); hull.addColorStop(1, '#102f46');
+  hull.addColorStop(0, model.accent); hull.addColorStop(.22, model.color); hull.addColorStop(.56, '#24708d'); hull.addColorStop(1, '#102f46');
   ctx.fillStyle = hull; ctx.strokeStyle = '#081a29'; ctx.lineWidth = 2.5;
   ctx.beginPath(); ctx.moveTo(-16, -8); ctx.lineTo(-10, -12); ctx.lineTo(8, -12); ctx.lineTo(14, -9); ctx.lineTo(19, -3); ctx.lineTo(19, 3); ctx.lineTo(14, 9); ctx.lineTo(8, 12); ctx.lineTo(-10, 12); ctx.lineTo(-16, 8); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.strokeStyle = '#b4fbff'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-9, -9); ctx.lineTo(7, -9); ctx.lineTo(15, -4); ctx.moveTo(-9, 9); ctx.lineTo(7, 9); ctx.lineTo(15, 4); ctx.stroke();
   ctx.fillStyle = '#102c3d'; ctx.beginPath(); ctx.moveTo(-5, -6); ctx.lineTo(8, -6); ctx.lineTo(14, 0); ctx.lineTo(8, 6); ctx.lineTo(-5, 6); ctx.lineTo(-10, 0); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#67f3ff'; ctx.shadowColor = '#29dfff'; ctx.shadowBlur = 9; ctx.beginPath(); ctx.arc(2, 0, 3.3, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = model.accent; ctx.shadowColor = model.color; ctx.shadowBlur = 9; ctx.beginPath(); ctx.arc(2, 0, 3.3, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
   for (const sy of [-1, 1]) {
-    ctx.fillStyle = '#e2ffff'; ctx.shadowColor = '#4aeaff'; ctx.shadowBlur = 7;
+    ctx.fillStyle = model.accent; ctx.shadowColor = model.color; ctx.shadowBlur = 7;
     ctx.beginPath(); ctx.moveTo(14, 5 * sy); ctx.lineTo(19, 3 * sy); ctx.lineTo(16, 8 * sy); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
   }
   ctx.fillStyle = '#10212c'; ctx.fillRect(-14, -4, 4, 2); ctx.fillRect(-14, 2, 4, 2);
+  if (tankTier() >= 1) { ctx.fillStyle = model.color; ctx.strokeStyle = '#101820'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-7,-11); ctx.lineTo(2,-15); ctx.lineTo(13,-11); ctx.lineTo(10,-7); ctx.lineTo(-5,-7); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-7,11); ctx.lineTo(2,15); ctx.lineTo(13,11); ctx.lineTo(10,7); ctx.lineTo(-5,7); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+  if (tankTier() >= 2) { ctx.fillStyle = model.accent; ctx.beginPath(); ctx.moveTo(17,-5); ctx.lineTo(24,0); ctx.lineTo(17,5); ctx.closePath(); ctx.fill(); }
+  if (tankTier() >= 3) { ctx.fillStyle = '#202832'; ctx.strokeStyle = model.color; ctx.lineWidth = 2; ctx.fillRect(-15,-17,24,4); ctx.strokeRect(-15,-17,24,4); ctx.fillRect(-15,13,24,4); ctx.strokeRect(-15,13,24,4); }
+  if (tankTier() >= 4) { ctx.fillStyle = model.accent; ctx.shadowColor = model.color; ctx.shadowBlur = 8; ctx.beginPath(); ctx.moveTo(-12,-12); ctx.lineTo(-18,-18); ctx.lineTo(-8,-16); ctx.lineTo(-4,-12); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(-12,12); ctx.lineTo(-18,18); ctx.lineTo(-8,16); ctx.lineTo(-4,12); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; }
 }
 function drawPlayerTurret(cf, recoil) {
+  const model = TANKS[tankTier()];
   const shell = ctx.createLinearGradient(0, -12, 0, 12);
-  shell.addColorStop(0, '#a8fbff'); shell.addColorStop(.35, '#38a9ca'); shell.addColorStop(1, '#12506d');
+  shell.addColorStop(0, model.accent); shell.addColorStop(.35, model.color); shell.addColorStop(1, '#12506d');
   ctx.fillStyle = '#092332'; ctx.strokeStyle = '#071923'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(-10, -8); ctx.lineTo(-5, -12); ctx.lineTo(6, -12); ctx.lineTo(11, -7); ctx.lineTo(12, 0); ctx.lineTo(8, 10); ctx.lineTo(-7, 10); ctx.lineTo(-12, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = shell; ctx.strokeStyle = '#81f1ff'; ctx.lineWidth = 1.6;
+  ctx.fillStyle = shell; ctx.strokeStyle = model.accent; ctx.lineWidth = 1.6;
   ctx.beginPath(); ctx.moveTo(-8, -7); ctx.lineTo(-4, -10); ctx.lineTo(5, -10); ctx.lineTo(9, -6); ctx.lineTo(10, 0); ctx.lineTo(6, 7); ctx.lineTo(-6, 7); ctx.lineTo(-9, 1); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#0b2b3d'; ctx.beginPath(); ctx.arc(0, 0, 5.1, 0, TAU); ctx.fill();
-  ctx.fillStyle = '#8effff'; ctx.shadowColor = '#32e6ff'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(0, 0, 2.7, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = model.accent; ctx.shadowColor = model.color; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(0, 0, 2.7, 0, TAU); ctx.fill(); ctx.shadowBlur = 0;
   ctx.fillStyle = '#d5ffff'; ctx.fillRect(-4 - recoil, -11, 3, 1.4); ctx.fillRect(2 - recoil, -11, 3, 1.4);
   ctx.fillStyle = '#102632'; ctx.fillRect(2 - recoil, -4.8, 28, 9.6);
   const barrel = ctx.createLinearGradient(0, -4, 0, 4); barrel.addColorStop(0, '#9effff'); barrel.addColorStop(.3, '#2caac7'); barrel.addColorStop(.7, '#14627e'); barrel.addColorStop(1, '#0b3148');
@@ -1778,6 +1817,9 @@ $('setHandling')?.addEventListener('change', e => saveSetting('handling', e.targ
 $('setShake')?.addEventListener('change', e => saveSetting('shake', e.target.checked));
 $('setParticles')?.addEventListener('change', e => saveSetting('particles', e.target.value));
 $('bArmoryBack').addEventListener('click', showTitle);
+$('tabWeapons').addEventListener('click', () => showArmoryTab('weapons'));
+$('tabDefense').addEventListener('click', () => showArmoryTab('defense'));
+$('defenseGrid').addEventListener('click', e => { const tank = e.target.closest('[data-buy-tank]'); if (tank) { buyTank(Number(tank.dataset.buyTank)); return; } const su = e.target.closest('[data-upgrade-shield]'); if (su) { upgradeShield(); return; } const sb = e.target.closest('[data-buy-shield]'); if (sb) buyShield(); });
 $('armoryGrid').addEventListener('click', e => { const su = e.target.closest('[data-upgrade-shield]'); if (su) { upgradeShield(); return; } const sb = e.target.closest('[data-buy-shield]'); if (sb) { buyShield(); return; } const up = e.target.closest('[data-upgrade-ammo]'); if (up) { upgradeAmmo(up.dataset.upgradeAmmo); return; } const b = e.target.closest('[data-ammo]'); if (b) buyOrEquipAmmo(b.dataset.ammo); });
 $('stDec').addEventListener('click', () => { startM = Math.max(1, startM - 1); $('stVal').textContent = startM; });
 $('stInc').addEventListener('click', () => { const lim = save.unlocked ? 100 : 20; startM = Math.min(lim, save.max, startM + 1); $('stVal').textContent = startM; });
@@ -1815,10 +1857,9 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=34"></script>
+<script src="version-check.js?v=35"></script>
 
 </body></html>
-
 
 
 
