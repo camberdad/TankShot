@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var CURRENT_VERSION = '29';
+  var CURRENT_VERSION = '30';
   var UPDATE_ATTEMPT_KEY = 'tankshot.updateAttempt';
   var latestVersion = '';
   var checkInProgress = false;
@@ -112,4 +112,5 @@
   document.addEventListener('visibilitychange', checkVersion);
   checkVersion();
 })();
+
 

@@ -46,12 +46,17 @@
   function readRemote() {
     if (!BIN_ID || !ACCESS_KEY) return Promise.reject(new Error('JSONBin X-Access-Key is not configured'));
     return fetch(URL + '/latest', { headers: headers, cache: 'no-store' }).then(checkResponse).then(function (r) { return r.json(); })
-      .then(function (d) { var record = d && d.record; return Array.isArray(record) ? { record: record, scores: record } : { record: record || {}, scores: record && Array.isArray(record.scores) ? record.scores : [] }; });
+      .then(function (d) {
+        // X-Bin-Meta: false makes JSONBin return the stored record directly,
+        // without the usual { record, metadata } wrapper.
+        var record = d && Object.prototype.hasOwnProperty.call(d, 'record') ? d.record : d;
+        return Array.isArray(record) ? { record: record, scores: record } : { record: record || {}, scores: record && Array.isArray(record.scores) ? record.scores : [] };
+      });
   }
   function fetchScores(cb) {
     var local = rank(cached());
     readRemote().then(function (data) { var gameRows = rank(data.scores); saveLocal(gameRows); cb(gameRows, true); })
-      .catch(function () { cb(local, false); });
+      .catch(function (error) { cb(local, false, error && error.message || 'Could not reach JSONBin'); });
   }
   function checkUsername(name, cb) {
     var wanted = String(name || '').trim().toLowerCase();

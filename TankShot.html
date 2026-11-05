@@ -187,7 +187,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 29">V29</span>
+      <span class="version-badge" title="Game version 30">V30</span>
     </div>
   </header>
 
@@ -317,8 +317,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=29"></script>
-<script src="leaderboard.js?v=29"></script>
+<script src="leaderboard-config.js?v=30"></script>
+<script src="leaderboard.js?v=30"></script>
 <script>
 (function () {
 'use strict';
@@ -893,8 +893,8 @@ function renderScores() {
   $('scoreStatus').textContent = window.TankShotScores && TankShotScores.configured ? 'Loading leaderboard…' : 'Add a restricted JSONBin X-Access-Key to enable live scores.';
   $('scoreBoard').innerHTML = '';
   if (!window.TankShotScores) { $('scoreStatus').textContent = 'Leaderboard unavailable'; return; }
-  TankShotScores.fetch(function (scores, online) {
-    $('scoreStatus').textContent = scoreWriteStatus || (online ? 'JSONBin · Live' : TankShotScores.configured ? 'Offline · device scores' : 'Access key needed · local scores only');
+  TankShotScores.fetch(function (scores, online, error) {
+    $('scoreStatus').textContent = scoreWriteStatus || (online ? 'JSONBin · Live' : TankShotScores.configured ? 'Offline · ' + (error || 'device scores only') : 'Access key needed · local scores only');
     const list = scores.slice(0, 10);
     $('scoreBoard').innerHTML = list.length ? '<div class="score-row score-head"><span>#</span><span>Player</span><span>Mission</span><span>Tanks defeated</span></div>' + list.map(function (s, i) {
       return '<div class="score-row"><span>' + (i + 1) + '</span><b>' + String(s.name || 'Guest').replace(/[&<>"']/g, '') + '</b><span>' + Number(s.highestMissionCompleted || s.level || 0) + '</span><span>' + Number(s.totalKills || s.kills || 0).toLocaleString() + '</span></div>';
@@ -1704,7 +1704,8 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=29"></script>
+<script src="version-check.js?v=30"></script>
 
 </body></html>
+
 
