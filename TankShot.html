@@ -180,14 +180,14 @@ canvas.playing { cursor: none; }
       <div class="stat"><span class="k">Best Mission</span><span class="v" id="hMission">0</span></div>
       <div class="stat"><span class="k">Tanks Defeated</span><span class="v" id="hEnemies">0</span></div>
       <div class="stat"><div class="health-line" id="hHealthWrap"><span class="k">Health</span><span class="health-meter" id="hHealth" role="meter" aria-label="Tank health" aria-valuemin="0" aria-valuemax="3" aria-valuenow="3"><i></i><i></i><i></i></span><span class="health-value" id="hHealthText">3/3</span></div><span class="k">Lives</span><span class="v" id="hLives"></span></div>
-      <div class="stat"><span class="k">Coins</span><span class="v" id="hCoins">0</span></div>
+      <div class="stat"><span class="k">GP</span><span class="v" id="hCoins">0</span></div>
       <div class="stat"><span class="k">Ammo</span><span class="v" id="hAmmo">Shell</span></div>
       <div class="stat"><span class="k">Medals</span><span class="v" id="hMedals"></span></div>
     </div>
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 31">V31</span>
+      <span class="version-badge" title="Game version 32">V32</span>
     </div>
   </header>
 
@@ -197,7 +197,7 @@ canvas.playing { cursor: none; }
 
     <div class="overlay" id="ovTitle">
       <img class="logo-image" src="assets/tankshot-logo.svg?v=17" alt="TankShot">
-      <p class="tag">Take three hits before losing a life. Bounce shots off the blocks and clear every arena.</p>
+      <p class="tag">Take three hits before losing a life. Bounce shots off the blocks and clear every arena. Unlock a shield in the Armory and right-click to block attacks.</p>
       <div class="row">
         <button class="btn primary" id="bPlay" type="button">Deploy</button>
         <button class="btn" id="bArmory" type="button">Armory</button>
@@ -216,6 +216,7 @@ canvas.playing { cursor: none; }
         <li><b>Aim</b>Mouse</li>
         <li><b>Fire</b>Click or Space</li>
         <li><b>Ammo</b>1–9 select · Q cycles unlocked types</li>
+        <li><b>Shield</b>Right-click · unlock in Armory</li>
         <li><b>Pause</b>P or Esc</li>
         <li><b>Sound</b>M</li>
       </ul>
@@ -238,7 +239,7 @@ canvas.playing { cursor: none; }
     <div class="overlay armory-overlay" id="ovArmory" hidden>
       <section class="armory-panel">
         <header class="armory-head">
-          <div><h2 class="h2">Armory</h2><p class="armory-balance">Wallet <b id="armoryCoins">0</b> coins</p></div>
+          <div><h2 class="h2">Armory</h2><p class="armory-balance">Wallet <b id="armoryCoins">0</b> GP</p></div>
           <button class="btn small" id="bArmoryBack" type="button">Back</button>
         </header>
         <p class="armory-note" id="armoryNote">Unlock each projectile once, then select it before firing.</p>
@@ -306,7 +307,7 @@ canvas.playing { cursor: none; }
     <div class="overlay" id="ovWin" hidden>
       <div class="medalart m-plat"></div>
       <h2 class="h2">All 100 cleared</h2>
-      <p class="tag">Every arena is quiet. The whole enemy fleet is scrap.</p>
+      <p class="tag" id="winText">Every arena is quiet. The whole enemy fleet is scrap.</p>
       <button class="btn primary" id="bWin" type="button">Back to title</button>
     </div>
   </div>
@@ -317,8 +318,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=31"></script>
-<script src="leaderboard.js?v=31"></script>
+<script src="leaderboard-config.js?v=32"></script>
+<script src="leaderboard.js?v=32"></script>
 <script>
 (function () {
 'use strict';
@@ -613,7 +614,7 @@ const AMMO = [
   { id: 'cluster', name: 'Cluster Bomb', short: 'CLST', shape: 'cluster', tier: 3, cost: 6200, speed: 250, bounce: 0, pierce: 0, radius: 126, color: '#ff795b', desc: 'Splits into explosive mini-shells on impact.' },
   { id: 'rail', name: 'Rail Cannon', short: 'RAIL', shape: 'beam', tier: 3, cost: 8500, speed: 680, bounce: 0, pierce: 99, radius: 0, color: '#8fffd5', desc: 'A piercing beam that cuts through every tank in its path.' }
 ];
-const DEFAULT_SAVE = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, highestMissionCompleted: 0, totalKills: 0, coins: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', ammoLevels: { standard: 1 }, eliteDefeated: [], settings: { fps: '60', difficulty: 'normal', handling: 'arcade', shake: false, particles: 'high' } };
+const DEFAULT_SAVE = { bronze: 0, silver: 0, gold: 0, plat: 0, unlocked: 0, max: 1, highestMissionCompleted: 0, totalKills: 0, coins: 0, shieldLevel: 0, ammoUnlocked: ['standard'], ammoEquipped: 'standard', ammoLevels: { standard: 1 }, eliteDefeated: [], settings: { fps: '60', difficulty: 'normal', handling: 'arcade', shake: false, particles: 'high' } };
 let save = Object.assign({}, DEFAULT_SAVE, { ammoUnlocked: ['standard'], eliteDefeated: [], settings: Object.assign({}, DEFAULT_SAVE.settings) });
 try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && typeof s === 'object') save = Object.assign(save, s); } catch (e) {}
 function normalizeSave(value) {
@@ -626,6 +627,7 @@ function normalizeSave(value) {
     if (next.ammoUnlocked.includes(ammo.id)) next.ammoLevels[ammo.id] = Math.max(1, Math.min(5, Math.floor(Number(next.ammoLevels[ammo.id]) || 1)));
     else delete next.ammoLevels[ammo.id];
   }
+  next.shieldLevel = Math.max(0, Math.min(5, Math.floor(Number(next.shieldLevel) || 0)));
   if (!Number.isFinite(next.coins) || next.coins < 0) next.coins = 0;
   next.highestMissionCompleted = Math.max(0, Math.floor(Number(next.highestMissionCompleted) || 0));
   next.totalKills = Math.max(0, Math.floor(Number(next.totalKills) || 0));
@@ -712,6 +714,9 @@ const MAX_HEALTH_PER_LIFE = 3;
 const G = { state: 'title', mission: 1, lives: 3, health: MAX_HEALTH_PER_LIFE, timer: 0, shake: 0, shakePhase: 0, note: '', after: 'next', afterMission: 0 };
 let cfg = null, grid = null, tanks = [], bullets = [], booms = [], parts = [], coinFloats = [], player = null;
 const keys = {}; const aim = { x: W / 2, y: 200 }; let mouseDown = false, aimSeen = false;
+let shieldTimer = 0, shieldCooldown = 0;
+const SHIELD_UNLOCK_COST = 1400, SHIELD_MAX_LEVEL = 5, SHIELD_COOLDOWN = 12;
+const GP_BOX_REWARD = 60, GP_BOX_BLAST_REWARD = 40, ROUND_CLEAR_GP_REWARD = 50;
 const stick = { x: 0, y: 0, on: false };
 
 function tileAt(c, r) { if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return T_FRAME; return grid[r][c]; }
@@ -830,6 +835,26 @@ function ammoUpgradeEffect(ammo) {
   if (ammo.id === 'rail') return '+ speed · brighter, wider beam';
   return '+ speed · + blast radius';
 }
+function shieldLevel() { return Math.max(0, Math.min(SHIELD_MAX_LEVEL, Math.floor(Number(save.shieldLevel) || 0))); }
+function shieldDuration(level) { return 1.5 + (Math.max(1, Math.min(SHIELD_MAX_LEVEL, level)) - 1) * .5; }
+function shieldUpgradeCost() { return Math.round(650 * Math.pow(1.55, Math.max(0, shieldLevel() - 1))); }
+function renderShieldCard() {
+  const level = shieldLevel(), owned = level > 0, duration = owned ? shieldDuration(level) : shieldDuration(1);
+  const action = owned ? 'Unlocked' : 'Unlock';
+  const unlock = '<button class="btn small" type="button" data-buy-shield ' + (owned ? 'disabled' : '') + '>' + action + '</button>';
+  const upgrade = owned && level < SHIELD_MAX_LEVEL
+    ? '<button class="btn small upgrade-ammo" type="button" data-upgrade-shield>Upgrade · ' + shieldUpgradeCost().toLocaleString() + ' GP</button>'
+    : owned ? '<span class="ammo-max">MAX LEVEL</span>' : '';
+  const pips = '<div class="ammo-upgrade-level" aria-label="Shield level ' + level + ' of ' + SHIELD_MAX_LEVEL + '">' +
+    [1, 2, 3, 4, 5].map(n => '<i class="' + (n <= level ? 'on' : '') + '" style="--pip-color:#66e8ff"></i>').join('') +
+    '<b>' + (owned ? 'LV ' + level : 'LOCKED') + '</b></div>';
+  return '<article class="armory-card shield-card">' +
+    '<span class="tier-tag">Defense</span><h3 style="color:#66e8ff">Energy Shield</h3>' +
+    '<p>Right-click to block all damage. Upgrades extend its active time.</p>' +
+    '<div class="ammo-meta"><span class="coin-icon">' + (owned ? 'Owned' : SHIELD_UNLOCK_COST.toLocaleString() + ' GP · unlock') + '</span><span>' + (owned ? duration.toFixed(1) + ' sec' : '') + '</span></div>' +
+    pips + '<div class="ammo-upgrade-effect">' + (owned ? 'Active for ' + duration.toFixed(1) + ' seconds · 12 second cooldown' : 'Unlock to activate · level 1 lasts ' + duration.toFixed(1) + ' seconds') + '</div>' +
+    '<div class="ammo-actions">' + unlock + upgrade + '</div></article>';
+}
 function updateWallet() {
   $('hCoins').textContent = save.coins.toLocaleString();
   $('hAmmo').textContent = ammoFor(save.ammoEquipped).short + ' L' + ammoLevel(save.ammoEquipped);
@@ -846,7 +871,7 @@ function renderAmmoBar() {
     const level = owned ? ammoLevel(ammo.id) : 0;
     button.style.setProperty('--ammo-color', owned ? ammoColor(ammo.id, level) : ammo.color);
     button.style.setProperty('--ammo-glow', owned ? (level + 1) + 'px' : '0px');
-    button.title = ammo.name + ' · Tier ' + TIER_NAMES[ammo.tier - 1] + (owned ? ' · Level ' + level + '/5 · ' + ammo.desc : ' · ' + (ammoTierReady(ammo) ? ammo.cost.toLocaleString() + ' coins · unlock in Armory' : 'Reach mission ' + TIER_MISSIONS[ammo.tier] + ', then unlock in Armory'));
+    button.title = ammo.name + ' · Tier ' + TIER_NAMES[ammo.tier - 1] + (owned ? ' · Level ' + level + '/5 · ' + ammo.desc : ' · ' + (ammoTierReady(ammo) ? ammo.cost.toLocaleString() + ' GP · unlock in Armory' : 'Reach mission ' + TIER_MISSIONS[ammo.tier] + ', then unlock in Armory'));
     const key = document.createElement('span'); key.className = 'ammo-key'; key.textContent = String(index + 1);
     const icon = document.createElement('span'); icon.className = 'ammo-icon';
     const name = document.createElement('span'); name.textContent = ammo.short;
@@ -870,15 +895,15 @@ function renderArmory() {
   $('armoryGrid').innerHTML = AMMO.map(a => {
     const owned = save.ammoUnlocked.includes(a.id), equipped = save.ammoEquipped === a.id;
     const tierOpen = ammoTierReady(a), action = owned ? (equipped ? 'Equipped' : 'Equip') : tierOpen ? 'Unlock' : 'Tier locked';
-    const level = owned ? ammoLevel(a.id) : 0, cost = a.cost ? '<span class="coin-icon">' + a.cost.toLocaleString() + ' coins · unlock</span>' : '<span>Free</span>';
-    const upgrade = owned && level < 5 ? '<button class="btn small upgrade-ammo" type="button" data-upgrade-ammo="' + a.id + '">Upgrade · ' + ammoUpgradeCost(a).toLocaleString() + ' coins</button>' : owned ? '<span class="ammo-max">MAX LEVEL</span>' : '';
+    const level = owned ? ammoLevel(a.id) : 0, cost = a.cost ? '<span class="coin-icon">' + a.cost.toLocaleString() + ' GP · unlock</span>' : '<span>Free</span>';
+    const upgrade = owned && level < 5 ? '<button class="btn small upgrade-ammo" type="button" data-upgrade-ammo="' + a.id + '">Upgrade · ' + ammoUpgradeCost(a).toLocaleString() + ' GP</button>' : owned ? '<span class="ammo-max">MAX LEVEL</span>' : '';
     const pips = '<div class="ammo-upgrade-level" aria-label="Upgrade level ' + (level || 0) + ' of 5">' + [1, 2, 3, 4, 5].map(n => '<i class="' + (n <= level ? 'on' : '') + '" style="--pip-color:' + (owned ? ammoColor(a.id, Math.max(1, n)) : a.color) + '"></i>').join('') + '<b>' + (level ? 'LV ' + level : 'LOCKED') + '</b></div>';
     return '<article class="armory-card' + (equipped ? ' selected' : '') + '">' +
       '<span class="tier-tag">Tier ' + TIER_NAMES[a.tier - 1] + (tierOpen ? '' : ' · Clear mission ' + TIER_MISSIONS[a.tier]) + '</span>' +
       '<h3 style="color:' + (owned ? ammoColor(a.id, Math.max(1, level)) : a.color) + '">' + a.name + '</h3><p>' + a.desc + '</p><div class="ammo-meta">' + cost + '<span>' + (equipped ? 'Selected' : owned ? 'Owned' : '') + '</span></div>' + pips +
       '<div class="ammo-upgrade-effect">' + ammoUpgradeEffect(a) + '</div>' +
       '<div class="ammo-actions"><button class="btn ' + (equipped ? 'primary' : '') + ' small" type="button" data-ammo="' + a.id + '" ' + (!owned && !tierOpen ? 'disabled' : '') + '>' + action + '</button>' + upgrade + '</div></article>';
-  }).join('');
+  }).join('') + renderShieldCard();
 }
 function openArmory() { renderArmory(); setOv('ovArmory'); }
 function openSettings() {
@@ -916,7 +941,7 @@ function buyOrEquipAmmo(id) {
   const a = ammoFor(id); if (!AMMO.some(x => x.id === id)) return;
   if (!save.ammoUnlocked.includes(id)) {
     if (!ammoTierReady(a)) { $('armoryNote').textContent = 'Clear mission ' + TIER_MISSIONS[a.tier] + ' to unlock Tier ' + TIER_NAMES[a.tier - 1] + '.'; return; }
-    if (save.coins < a.cost) { $('armoryNote').textContent = 'You need ' + (a.cost - save.coins) + ' more coins to unlock ' + a.name + '.'; return; }
+    if (save.coins < a.cost) { $('armoryNote').textContent = 'You need ' + (a.cost - save.coins) + ' more GP to unlock ' + a.name + '.'; return; }
     save.coins -= a.cost; save.ammoUnlocked.push(id); save.ammoLevels[id] = 1;
   }
   save.ammoEquipped = id; persist(); $('armoryNote').textContent = 'Equipped ' + a.name + '. Ammo unlocks are saved.'; renderArmory(); updHud();
@@ -927,9 +952,25 @@ function upgradeAmmo(id) {
   const level = ammoLevel(id);
   if (level >= 5) return;
   const cost = ammoUpgradeCost(ammo);
-  if (save.coins < cost) { $('armoryNote').textContent = 'You need ' + (cost - save.coins).toLocaleString() + ' more coins to upgrade ' + ammo.name + '.'; return; }
+  if (save.coins < cost) { $('armoryNote').textContent = 'You need ' + (cost - save.coins).toLocaleString() + ' more GP to upgrade ' + ammo.name + '.'; return; }
   save.coins -= cost; save.ammoLevels[id] = level + 1; persist();
   $('armoryNote').textContent = ammo.name + ' upgraded to level ' + (level + 1) + ' · ' + ammoUpgradeEffect(ammo) + '.';
+  renderArmory(); updHud();
+}
+function buyShield() {
+  if (shieldLevel()) return;
+  if (save.coins < SHIELD_UNLOCK_COST) { $('armoryNote').textContent = 'You need ' + (SHIELD_UNLOCK_COST - save.coins).toLocaleString() + ' more GP to unlock the shield.'; return; }
+  save.coins -= SHIELD_UNLOCK_COST; save.shieldLevel = 1; persist();
+  $('armoryNote').textContent = 'Energy Shield unlocked · active for ' + shieldDuration(1).toFixed(1) + ' seconds.';
+  renderArmory(); updHud();
+}
+function upgradeShield() {
+  const level = shieldLevel();
+  if (!level || level >= SHIELD_MAX_LEVEL) return;
+  const cost = shieldUpgradeCost();
+  if (save.coins < cost) { $('armoryNote').textContent = 'You need ' + (cost - save.coins).toLocaleString() + ' more GP to upgrade the shield.'; return; }
+  save.coins -= cost; save.shieldLevel = level + 1; persist();
+  $('armoryNote').textContent = 'Energy Shield upgraded to level ' + (level + 1) + ' · active for ' + shieldDuration(level + 1).toFixed(1) + ' seconds.';
   renderArmory(); updHud();
 }
 function updHud() {
@@ -962,7 +1003,7 @@ function showTitle() {
   $('stepWrap').hidden = top <= 1;
   if (startM > top) startM = top;
   $('stVal').textContent = startM;
-  $('armoryNote').textContent = 'Unlock ammo with coins. Earn coins by destroying enemy tanks and coin crates.';
+  $('armoryNote').textContent = 'Unlock ammo and shield upgrades with GP. Earn GP by destroying tanks, opening GP Boxes, and clearing rounds.';
   updHud();
   $('titleRunStats').textContent = 'Best run: Level ' + (save.bestLevel || 1) + ' · ' + (save.bestKills || 0) + ' tanks defeated';
   $('activePlayerLabel').textContent = 'Player: ' + (currentProfile || 'Guest');
@@ -1034,6 +1075,7 @@ function cycleAmmo() {
 function startSession(m) {
   runStats = { shots: 0, kills: 0, level: m };
   SEED = (Math.random() * 1e9) | 0;
+  shieldTimer = 0; shieldCooldown = 0;
   G.lives = 3; G.health = MAX_HEALTH_PER_LIFE; G.note = ''; enterMission(m);
 }
 function enterMission(m) {
@@ -1073,11 +1115,13 @@ function completeMission() {
   else if (m === 10 && !save.silver) { save.silver = 1; ev = 'silver'; }
   else if (m === 20 && !save.gold) { save.gold = 1; save.unlocked = 1; save.max = Math.max(save.max, 21); ev = 'gold'; end = true; }
   if (m > 30) { save.plat++; G.note = (G.note ? G.note + '. ' : '') + 'Platinum medal earned'; }
+  gainCoins(ROUND_CLEAR_GP_REWARD);
+  G.note = (G.note ? G.note + '. ' : '') + '+' + ROUND_CLEAR_GP_REWARD + ' GP for clearing the round';
   persist(); updHud(); submitRun();
-  if (m >= 100) { G.state = 'win'; save.bestLevel = 100; persist(); setOv('ovWin'); return; }
+  if (m >= 100) { G.state = 'win'; save.bestLevel = 100; persist(); $('winText').textContent = 'Every arena is quiet. The whole enemy fleet is scrap. +' + ROUND_CLEAR_GP_REWARD + ' GP earned.'; setOv('ovWin'); return; }
   if (ev) { showMedal(ev, m, end); return; }
   G.state = 'cleared'; G.afterMission = m + 1;
-  $('clearText').textContent = 'Mission ' + m + ' cleared. Continue when you are ready, or return to the main menu.';
+  $('clearText').textContent = 'Mission ' + m + ' cleared. +' + ROUND_CLEAR_GP_REWARD + ' GP earned. Continue when you are ready, or return to the main menu.';
   setOv('ovClear');
 }
 function showMedal(ev, m, end) {
@@ -1144,12 +1188,22 @@ function fire(t, ang, spd, bounce, ammoId) {
 }
 function damagePlayer(t) {
   if (!t.alive || G.state !== 'play') return;
+  if (shieldTimer > 0) { burst(t.x, t.y, 8, ['#d9fbff', '#6beaff', '#8bceff'], 78, .2, 2.2); return; }
   G.health = Math.max(0, G.health - 1);
   burst(t.x, t.y, 12, G.health ? ['#fff0b0', '#ffb84d', '#ff7043'] : ['#ffcf5a', '#ff8a3c', '#3a3a3a'], 130, .38, 3.2);
   if (save.settings.shake) G.shake = Math.max(G.shake, G.health ? 3 : 7);
   if (G.health <= 0) { t.alive = false; playerDown(); }
   else sfx('bounce');
   updHud();
+}
+function activateShield() {
+  if (G.state !== 'play' || !player || !player.alive) return;
+  const level = shieldLevel();
+  if (!level) { flashToast('Unlock the Energy Shield in the Armory first.'); return; }
+  if (shieldTimer > 0) return;
+  if (shieldCooldown > 0) { flashToast('Shield recharging · ' + Math.ceil(shieldCooldown) + 's'); return; }
+  shieldTimer = shieldDuration(level); shieldCooldown = SHIELD_COOLDOWN;
+  flashToast('Energy Shield active · ' + shieldTimer.toFixed(1) + 's');
 }
 function killTank(t, ammoId, ammoLvl) {
   if (!t.alive) return;
@@ -1165,7 +1219,7 @@ function openCoinCrate(c, r, owner) {
   if (grid[r][c] !== T_COIN) return false;
   grid[r][c] = 0;
   const x = (c + .5) * TS, y = (r + .5) * TS;
-  if (owner && owner.isPlayer) gainCoins(50, x, y);
+  if (owner && owner.isPlayer) gainCoins(GP_BOX_REWARD, x, y);
   booms.push({ x, y, t: 0, rad: 40, coin: true });
   burst(x, y, 20, ['#ffd867', '#e29b3b', '#9f602c', '#fff2b0'], 150, .55, 3.5);
   drawFloor(); sfx('pop'); return true;
@@ -1185,7 +1239,7 @@ function boom(x, y, radius, ammoId, level, protectPlayer) {
     const d = Math.hypot((c + .5) * TS - x, (r + .5) * TS - y);
     if (d >= radius) continue;
     if (grid[r][c] === T_COIN) {
-      grid[r][c] = 0; changed = true; gainCoins(35, (c + .5) * TS, (r + .5) * TS);
+      grid[r][c] = 0; changed = true; gainCoins(GP_BOX_BLAST_REWARD, (c + .5) * TS, (r + .5) * TS);
       burst((c + .5) * TS, (r + .5) * TS, 14, ['#ffd867', '#e29b3b', '#a96d38'], 160, .65, 4);
     } else if (grid[r][c] === T_CORK) {
       grid[r][c] = 0; changed = true;
@@ -1398,6 +1452,8 @@ function updateFx(dt) {
 }
 function stepWorld(dt, live) {
   if (live) {
+    shieldTimer = Math.max(0, shieldTimer - dt);
+    shieldCooldown = Math.max(0, shieldCooldown - dt);
     if (player.alive) updatePlayer(player, dt);
     for (const t of tanks) if (!t.isPlayer && t.alive) updateEnemy(t, dt);
     separate();
@@ -1431,7 +1487,7 @@ function drawBlock(c, r, t) {
     ctx.beginPath(); ctx.moveTo(x + 5, top + 7); ctx.lineTo(x + TS - 5, top + TS - 7); ctx.moveTo(x + TS - 5, top + 7); ctx.lineTo(x + 5, top + TS - 7); ctx.stroke();
     ctx.fillStyle = '#ffd867'; ctx.beginPath(); ctx.arc(x + TS / 2, top + TS / 2, 7, 0, TAU); ctx.fill();
     ctx.strokeStyle = '#8a541e'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = '#9a5d1c'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', x + TS / 2, top + TS / 2 + .5);
+    ctx.fillStyle = '#9a5d1c'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('GP', x + TS / 2, top + TS / 2 + .5);
     ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = 'rgba(255,255,255,.46)'; ctx.fillRect(x + 4, top + 4, 5, 2);
     return;
@@ -1472,6 +1528,14 @@ function drawTank(t) {
   const x = t.x, y = t.y + OY;
   ctx.save(); ctx.globalAlpha = cf.stealth ? t.stealthA : 1;
   ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x + 4, y + 7, 19, 13, 0, 0, TAU); ctx.fill();
+  if (t.isPlayer && shieldTimer > 0) {
+    const pulse = Math.sin(G.shakePhase * 10) * 2;
+    ctx.save(); ctx.globalAlpha = .55 + Math.sin(G.shakePhase * 8) * .12;
+    ctx.strokeStyle = '#75eaff'; ctx.lineWidth = 2.5; ctx.shadowColor = '#47dfff'; ctx.shadowBlur = 14;
+    ctx.beginPath(); ctx.ellipse(x, y, 29 + pulse, 25 + pulse, 0, 0, TAU); ctx.stroke();
+    ctx.setLineDash([6, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x, y, 34 + pulse, 30 + pulse, -G.shakePhase * .4, 0, TAU); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+  }
   ctx.translate(x, y - 3); ctx.rotate(t.body);
   const track = ctx.createLinearGradient(0, -16, 0, 16); track.addColorStop(0, '#11151a'); track.addColorStop(.5, '#454b50'); track.addColorStop(1, '#171b20');
   ctx.fillStyle = track; ctx.fillRect(-18, -16, 36, 9); ctx.fillRect(-18, 7, 36, 9);
@@ -1581,8 +1645,8 @@ function render() {
   for (const p of parts) { ctx.globalAlpha = Math.max(0, p.l / p.m); ctx.fillStyle = p.c; ctx.fillRect(p.x - p.s / 2, p.y + OY - p.s / 2, p.s, p.s); }
   for (const c of coinFloats) {
     ctx.globalAlpha = Math.max(0, 1 - c.t); ctx.font = 'bold 19px "Barlow Condensed", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40,25,8,.8)'; ctx.strokeText('+' + c.amount + ' COINS', c.x, c.y + OY);
-    ctx.fillStyle = '#ffe17a'; ctx.fillText('+' + c.amount + ' COINS', c.x, c.y + OY);
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40,25,8,.8)'; ctx.strokeText('+' + c.amount + ' GP', c.x, c.y + OY);
+    ctx.fillStyle = '#ffe17a'; ctx.fillText('+' + c.amount + ' GP', c.x, c.y + OY);
   }
   ctx.globalAlpha = 1;
   if (G.state === 'clear') {
@@ -1604,8 +1668,8 @@ cv.addEventListener('pointermove', e => { const w = toWorld(e); aim.x = w.x; aim
 cv.addEventListener('pointerdown', e => {
   const w = toWorld(e); aim.x = w.x; aim.y = w.y; aimSeen = true;
   actx();
+  if (e.button === 2) { e.preventDefault(); if (G.state === 'play') activateShield(); return; }
   if (G.state === 'brief') { G.timer = 0; return; }
-  if (e.button === 2) return;
   mouseDown = true;
   try { cv.setPointerCapture(e.pointerId); } catch (err) {}
 });
@@ -1667,7 +1731,7 @@ $('setHandling')?.addEventListener('change', e => saveSetting('handling', e.targ
 $('setShake')?.addEventListener('change', e => saveSetting('shake', e.target.checked));
 $('setParticles')?.addEventListener('change', e => saveSetting('particles', e.target.value));
 $('bArmoryBack').addEventListener('click', showTitle);
-$('armoryGrid').addEventListener('click', e => { const up = e.target.closest('[data-upgrade-ammo]'); if (up) { upgradeAmmo(up.dataset.upgradeAmmo); return; } const b = e.target.closest('[data-ammo]'); if (b) buyOrEquipAmmo(b.dataset.ammo); });
+$('armoryGrid').addEventListener('click', e => { const su = e.target.closest('[data-upgrade-shield]'); if (su) { upgradeShield(); return; } const sb = e.target.closest('[data-buy-shield]'); if (sb) { buyShield(); return; } const up = e.target.closest('[data-upgrade-ammo]'); if (up) { upgradeAmmo(up.dataset.upgradeAmmo); return; } const b = e.target.closest('[data-ammo]'); if (b) buyOrEquipAmmo(b.dataset.ammo); });
 $('stDec').addEventListener('click', () => { startM = Math.max(1, startM - 1); $('stVal').textContent = startM; });
 $('stInc').addEventListener('click', () => { const lim = save.unlocked ? 100 : 20; startM = Math.min(lim, save.max, startM + 1); $('stVal').textContent = startM; });
 $('bOver').addEventListener('click', () => { grid = null; cfg = null; tanks = []; showTitle(); });
@@ -1704,9 +1768,11 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=31"></script>
+<script src="version-check.js?v=32"></script>
 
 </body></html>
+
+
 
 
 
