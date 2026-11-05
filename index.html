@@ -187,7 +187,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 33">V33</span>
+      <span class="version-badge" title="Game version 34">V34</span>
     </div>
   </header>
 
@@ -318,8 +318,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=33"></script>
-<script src="leaderboard.js?v=33"></script>
+<script src="leaderboard-config.js?v=34"></script>
+<script src="leaderboard.js?v=34"></script>
 <script>
 (function () {
 'use strict';
@@ -715,7 +715,7 @@ const G = { state: 'title', mission: 1, lives: 3, health: MAX_HEALTH_PER_LIFE, t
 let cfg = null, grid = null, tanks = [], bullets = [], booms = [], parts = [], coinFloats = [], player = null;
 const keys = {}; const aim = { x: W / 2, y: 200 }; let mouseDown = false, aimSeen = false;
 let shieldTimer = 0, shieldCooldown = 0;
-const SHIELD_UNLOCK_COST = 1400, SHIELD_MAX_LEVEL = 5, SHIELD_COOLDOWN = 12;
+const SHIELD_UNLOCK_COST = 1400, SHIELD_MAX_LEVEL = 5, SHIELD_COOLDOWN = 4.8;
 const GP_BOX_REWARD = 60, GP_BOX_BLAST_REWARD = 40, ROUND_CLEAR_GP_REWARD = 50;
 const stick = { x: 0, y: 0, on: false };
 
@@ -852,7 +852,7 @@ function renderShieldCard() {
     '<span class="tier-tag">Defense</span><h3 style="color:#66e8ff">Energy Shield</h3>' +
     '<p>Right-click to block all damage. Upgrades extend its active time.</p>' +
     '<div class="ammo-meta"><span class="coin-icon">' + (owned ? 'Owned' : SHIELD_UNLOCK_COST.toLocaleString() + ' GP · unlock') + '</span><span>' + (owned ? duration.toFixed(1) + ' sec' : '') + '</span></div>' +
-    pips + '<div class="ammo-upgrade-effect">' + (owned ? 'Active for ' + duration.toFixed(1) + ' seconds · 12 second cooldown' : 'Unlock to activate · level 1 lasts ' + duration.toFixed(1) + ' seconds') + '</div>' +
+    pips + '<div class="ammo-upgrade-effect">' + (owned ? 'Active for ' + duration.toFixed(1) + ' seconds · 4.8 second cooldown' : 'Unlock to activate · level 1 lasts ' + duration.toFixed(1) + ' seconds') + '</div>' +
     '<div class="ammo-actions">' + unlock + upgrade + '</div></article>';
 }
 function updateWallet() {
@@ -1815,9 +1815,10 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=33"></script>
+<script src="version-check.js?v=34"></script>
 
 </body></html>
+
 
 
 
