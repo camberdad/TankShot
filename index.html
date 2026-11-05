@@ -187,7 +187,7 @@ canvas.playing { cursor: none; }
     <div class="actions">
       <button class="btn small" id="bMute" type="button">Sound on</button>
       <button class="btn small" id="bPause" type="button">Pause</button>
-      <span class="version-badge" title="Game version 30">V30</span>
+      <span class="version-badge" title="Game version 31">V31</span>
     </div>
   </header>
 
@@ -317,8 +317,8 @@ canvas.playing { cursor: none; }
 
 </div>
 
-<script src="leaderboard-config.js?v=30"></script>
-<script src="leaderboard.js?v=30"></script>
+<script src="leaderboard-config.js?v=31"></script>
+<script src="leaderboard.js?v=31"></script>
 <script>
 (function () {
 'use strict';
@@ -894,7 +894,7 @@ function renderScores() {
   $('scoreBoard').innerHTML = '';
   if (!window.TankShotScores) { $('scoreStatus').textContent = 'Leaderboard unavailable'; return; }
   TankShotScores.fetch(function (scores, online, error) {
-    $('scoreStatus').textContent = scoreWriteStatus || (online ? 'JSONBin · Live' : TankShotScores.configured ? 'Offline · ' + (error || 'device scores only') : 'Access key needed · local scores only');
+    $('scoreStatus').textContent = scoreWriteStatus || (online ? 'Updated · Live' : TankShotScores.configured ? 'Offline · ' + (error || 'device scores only') : 'Access key needed · local scores only');
     const list = scores.slice(0, 10);
     $('scoreBoard').innerHTML = list.length ? '<div class="score-row score-head"><span>#</span><span>Player</span><span>Mission</span><span>Tanks defeated</span></div>' + list.map(function (s, i) {
       return '<div class="score-row"><span>' + (i + 1) + '</span><b>' + String(s.name || 'Guest').replace(/[&<>"']/g, '') + '</b><span>' + Number(s.highestMissionCompleted || s.level || 0) + '</span><span>' + Number(s.totalKills || s.kills || 0).toLocaleString() + '</span></div>';
@@ -908,7 +908,7 @@ function submitRun() {
   TankShotScores.submit({ name, highestMissionCompleted: save.highestMissionCompleted, totalKills: save.totalKills,
     level: save.highestMissionCompleted, shots: runStats.shots, kills: save.totalKills,
     score: save.totalKills * 100 + save.highestMissionCompleted * 500 }, function (result) {
-      scoreWriteStatus = result.ok ? 'JSONBin · Live — score saved' : 'Score save failed: ' + result.error;
+      scoreWriteStatus = result.ok ? 'Updated · Live — score saved' : 'Score save failed: ' + result.error;
       $('scoreStatus').textContent = scoreWriteStatus;
     });
 }
@@ -1704,8 +1704,9 @@ if (window.__TT) window.__TT({ G, buildCfg, getMap, update, render, startSession
 })();
 </script>
 
-<script src="version-check.js?v=30"></script>
+<script src="version-check.js?v=31"></script>
 
 </body></html>
+
 
 
